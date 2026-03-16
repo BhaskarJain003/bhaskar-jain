@@ -1,0 +1,78 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Projects | ${SITE_TITLE}`} description="Projects by Bhaskar Jain" />
+		<style>
+			.projects-intro {
+				margin-bottom: 2em;
+			}
+			.projects-grid {
+				display: flex;
+				flex-direction: column;
+				gap: 2em;
+			}
+			.project-card {
+				padding: 1.5em;
+				background: white;
+				border-radius: 12px;
+				box-shadow: var(--box-shadow);
+				border: 1px solid rgba(var(--gray-light), 1);
+			}
+			.project-card h3 {
+				margin-top: 0;
+			}
+			.project-card .description {
+				color: rgb(var(--gray));
+				margin: 0.5em 0;
+			}
+			.project-card .links {
+				margin-top: 1em;
+			}
+			.project-card .links a {
+				margin-right: 1em;
+				color: rgb(var(--accent));
+			}
+			.project-card .links a:hover {
+				text-decoration: underline;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>Projects</h1>
+			<p class="projects-intro">
+				A selection of things I've built and worked on.
+			</p>
+			<div class="projects-grid">
+				<article class="project-card">
+					<h3>Project Title</h3>
+					<p class="description">
+						A brief description of the project. What it does, technologies used, and what you learned.
+					</p>
+					<div class="links">
+						<a href="#">Live Demo</a>
+						<a href="#">Source Code</a>
+					</div>
+				</article>
+				<article class="project-card">
+					<h3>Another Project</h3>
+					<p class="description">
+						Add more project cards here. Duplicate this block and fill in your own project details.
+					</p>
+					<div class="links">
+						<a href="#">Link</a>
+					</div>
+				</article>
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>
