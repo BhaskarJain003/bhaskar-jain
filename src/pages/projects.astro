@@ -10,68 +10,27 @@ import { SITE_TITLE } from '../consts';
 	<head>
 		<BaseHead title={`Projects | ${SITE_TITLE}`} description="Projects by Bhaskar Jain" />
 		<style>
-			.projects-intro {
-				margin-bottom: 2em;
+			.section-title {
+				font-size: 1.25em;
+				font-weight: 600;
+				margin: 0 0 0.5em 0;
+				color: rgb(var(--black));
 			}
-			.projects-grid {
-				display: flex;
-				flex-direction: column;
-				gap: 2em;
-			}
-			.project-card {
-				padding: 1.5em;
-				background: white;
-				border-radius: 12px;
-				box-shadow: var(--box-shadow);
-				border: 1px solid rgba(var(--gray-light), 1);
-			}
-			.project-card h3 {
-				margin-top: 0;
-			}
-			.project-card .description {
+			.section-subtitle {
+				margin: 0 0 1.5em 0;
 				color: rgb(var(--gray));
-				margin: 0.5em 0;
-			}
-			.project-card .links {
-				margin-top: 1em;
-			}
-			.project-card .links a {
-				margin-right: 1em;
-				color: rgb(var(--accent));
-			}
-			.project-card .links a:hover {
-				text-decoration: underline;
+				font-size: 0.95em;
+				line-height: 1.5;
 			}
 		</style>
 	</head>
 	<body>
 		<Header />
 		<main>
-			<h1>Projects</h1>
-			<p class="projects-intro">
-				A selection of things I've built and worked on.
+			<h2 class="section-title">Projects</h2>
+			<p class="section-subtitle">
+				Coming Soon
 			</p>
-			<div class="projects-grid">
-				<article class="project-card">
-					<h3>Project Title</h3>
-					<p class="description">
-						A brief description of the project. What it does, technologies used, and what you learned.
-					</p>
-					<div class="links">
-						<a href="#">Live Demo</a>
-						<a href="#">Source Code</a>
-					</div>
-				</article>
-				<article class="project-card">
-					<h3>Another Project</h3>
-					<p class="description">
-						Add more project cards here. Duplicate this block and fill in your own project details.
-					</p>
-					<div class="links">
-						<a href="#">Link</a>
-					</div>
-				</article>
-			</div>
 		</main>
 		<Footer />
 	</body>

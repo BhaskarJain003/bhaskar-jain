@@ -15,6 +15,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 	<head>
 		<BaseHead title={title} description={description} />
 		<style>
+			/* Default article settings - applied to all thought articles */
 			main {
 				width: calc(100% - 2em);
 				max-width: 100%;
@@ -30,6 +31,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				box-shadow: var(--box-shadow);
 			}
 			.prose {
+				font-size: 12px;
 				width: 720px;
 				max-width: calc(100% - 2em);
 				margin: auto;
