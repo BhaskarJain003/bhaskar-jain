@@ -1,11 +1,17 @@
 ---
 import { Image } from 'astro:assets';
-import type { CollectionEntry } from 'astro:content';
+import type { ImageMetadata } from 'astro';
 import BaseHead from '../components/BaseHead.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 
-type Props = CollectionEntry<'thoughts'>['data'];
+type Props = {
+	title: string;
+	description: string;
+	pubDate: Date;
+	updatedDate?: Date;
+	heroImage?: ImageMetadata;
+};
 
 const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 ---
@@ -30,7 +36,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				box-shadow: var(--box-shadow);
 			}
 			.prose {
-				font-size: 12px;
+				font-size: 14px;
 				width: 720px;
 				max-width: calc(100% - 2em);
 				margin: auto;
@@ -52,6 +58,20 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 			}
 			.last-updated-on {
 				font-style: italic;
+			}
+			.prose :global(.katex-display) {
+				margin: 1.25em 0;
+				overflow-x: auto;
+				overflow-y: hidden;
+			}
+			.prose :global(.katex) {
+				font-size: 1.05em;
+			}
+			.prose :global(.credit) {
+				text-align: center;
+				color: rgb(var(--gray));
+				font-size: 0.95em;
+				margin: 2em 0 0 0;
 			}
 		</style>
 	</head>

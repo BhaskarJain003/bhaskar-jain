@@ -1,0 +1,83 @@
+---
+title: 'Fitting the M–σ relation with measurement errors and MCMC'
+description: 'Computational Physics (PHYS 6260) homework: ingest the McConnell & Ma black hole catalog, build a heteroskedastic log-linear model, and sample the posterior with emcee.'
+pubDate: 'Apr 9 2026'
+---
+import MsigmaCharts from '../../components/charts/MsigmaCharts';
+
+Galaxies keep a surprisingly orderly secret in their centers: more massive black holes tend to live in “hotter” stellar systems, where stars zip around with higher velocity dispersion $\sigma$. That empirical correlation—the **M–σ relation**—is one of the cleanest bridges between observations of quiescent supermassive black holes and the physics of galaxy formation.
+
+This page is a **walkthrough** of my second homework from Georgia Tech **PHYS 6260**. The goal was to treat the problem the way you would in real research: ingest a public catalog, respect measurement uncertainties in both coordinates, write down a defensible likelihood, and let an ensemble sampler tell you what the data actually support. Code, figures, and the cleaned table live in the public repo **[Galaxy\_M–σ\_relation](https://github.com/BhaskarJain003/Galaxy_M-_relation)** on GitHub.
+
+## The dataset
+
+I started from the Berkeley compilation of the McConnell & Ma (2013, ApJ, 764, 184) ASCII table (`current_ascii.txt`). Each row is a galaxy with a black hole mass estimate $M_{\mathrm{BH}}$ and a central stellar velocity dispersion $\sigma$, each with asymmetric uncertainties.
+
+The first real modeling choice is bookkeeping:
+
+- **Parse and validate** rows (mass and $\sigma$ must be positive; uncertainties must be sensible).
+- **De-duplicate** galaxies that appear more than once in the raw table (keep one row per galaxy ID).
+- **Export a clean CSV** with log-quantities and per-point “$\sigma$” in log space so downstream code stays simple.
+
+That ingestion step is easy to rush and painful to debug if you get it wrong. I treated it as part of the science pipeline, not a nuisance script.
+
+## A log-linear model on a reference scale
+
+Work in log space:
+
+- $x = \log_{10}\left(\frac{\sigma}{\sigma_{\mathrm{ref}}}\right)$ with $\sigma_{\mathrm{ref}} = 200\ \mathrm{km\,s^{-1}}$
+- $y = \log_{10}\left(\frac{M_{\mathrm{BH}}}{M_\odot}\right)$
+
+A power law in physical units becomes a straight line:
+
+$$
+y \approx \alpha + b x
+$$
+
+where the intercept $\alpha$ is tied to the normalization at the reference dispersion. I also report the usual normalization $A$ in solar masses, computed from $\alpha$ and $b$.
+
+## Uncertainties: you cannot ignore both axes
+
+If $\sigma$ were known perfectly, you could treat this like ordinary weighted least squares in $y$. **It is not:** $x$ carries measurement error too, and the slope $b$ propagates that error into the predicted $y$.
+
+The baseline likelihood uses a per-object effective scatter in log space:
+
+$$
+\sigma_{\mathrm{tot},i}^2 = \sigma_{y,i}^2 + b^2 \sigma_{x,i}^2
+$$
+
+where $\sigma_{x,i}$ and $\sigma_{y,i}$ come from the reported measurement intervals (converted to rough log-space “sigmas” for each point). Intuitively: if you mis-measure $\sigma$, you slide along a line with slope $b$ in the $(x,y)$ plane, so the $x$-uncertainty contributes proportional to $b^2$.
+
+## Baseline inference with emcee
+
+I sampled the posterior for $(\alpha, b)$ with **emcee** using broad uniform priors on $\alpha$ and $b$ (wide enough to not matter, tight enough to keep the sampler away from nonsense regions). Each run used an ensemble of walkers, a long chain, and a conservative burn-in.
+
+The figures are meant as an interactive companion to the static MCMC exports in the repo: the scatter panel overlays an **OLS guide** in log-space (the same starting point the sampler uses), the hexbin panel summarizes **bootstrap resamples** of galaxies (not the emcee posterior), and the histogram shows **standardized OLS residuals** (a quick sanity check on scatter vs. measurement noise—not the $\varepsilon$ marginal from the extended model).
+
+<MsigmaCharts client:visible />
+
+## Adding intrinsic scatter ($\varepsilon$)
+
+Real astrophysical scaling relations rarely sit perfectly on a line even after measurement errors. A minimal extension is an **intrinsic scatter** term in dex (in $\log_{10}$ mass):
+
+$$
+\sigma_{\mathrm{tot},i}^2 = \sigma_{y,i}^2 + b^2 \sigma_{x,i}^2 + \varepsilon^2
+$$
+
+with a uniform prior on $\varepsilon$ in a bounded range. The question is not “can I add a parameter?”—it is whether the posterior for $\varepsilon$ pushes away from zero in a way that survives scrutiny (and is not just an artifact of the prior hitting a boundary).
+
+For the **$\varepsilon$ posterior** from the full scatter-model MCMC, the script still writes a dedicated PNG (`figure_msigma_epsilon_marginal.png` in the repo); that curve is best compared to the interactive residual view above when you want intuition about whether extra scatter beyond the per-point error budget is pulling the fit.
+
+Interpreting $\varepsilon$ is where the homework stops being a coding exercise and starts reading like research: compare HPD intervals to zero, compare typical measurement noise to $\varepsilon$ at the median $b$, and sanity-check whether the sampler is happy (acceptance fractions, autocorrelation warnings when available).
+
+## What I took away
+
+- **Ingestion is modeling.** If your CSV is wrong, your beautiful MCMC is just expensive fiction.
+- **Errors-in-variables are not optional** here: ignoring $\sigma$ uncertainties would systematically distort $b$.
+- **Intrinsic scatter is a physical hypothesis**, not a tuning knob: you want explicit priors, explicit plots, and a sentence that says what would convince you either way.
+
+The implementation is a single Python script (`hw2_msigma.py`): ingest → CSV → baseline MCMC → scatter MCMC → figures and terminal summaries (HPDs, medians, and a quick log-likelihood sanity check between nested models). Clone or browse the full project here: [github.com/BhaskarJain003/Galaxy\_M–σ\_relation](https://github.com/BhaskarJain003/Galaxy_M-_relation).
+
+---
+
+<p className="credit"><em>Credit: <a href="https://cursor.com" target="_blank" rel="noopener noreferrer">Cursor</a> wrote the analysis summarized here and drafted this write-up.</em></p>

@@ -1,0 +1,51 @@
+.msigma-charts {
+	margin: 1.5em 0;
+}
+
+.msigma-charts__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+.msigma-charts__row--full {
+	width: 100%;
+}
+
+.msigma-charts__row--split {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	width: 100%;
+}
+
+@media (max-width: 720px) {
+	.msigma-charts__row--split {
+		grid-template-columns: 1fr;
+	}
+}
+
+.msigma-charts__plot {
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+.msigma-charts__plot :global(svg) {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.msigma-charts__caption {
+	font-size: 0.85em;
+	color: rgb(var(--gray));
+	line-height: 1.55;
+	margin: 1em 0 0;
+}
+
+.msigma-charts__error {
+	color: #a33;
+	font-size: 0.9em;
+}

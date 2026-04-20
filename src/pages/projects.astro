@@ -1,7 +1,13 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
+import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
+
+const projects = (await getCollection('projects')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
 ---
 
 <!doctype html>
@@ -21,6 +27,50 @@ import { SITE_TITLE } from '../consts';
 				font-size: 0.95em;
 				line-height: 1.5;
 			}
+			.projects-list {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+			}
+			.projects-list li {
+				margin-bottom: 1em;
+			}
+			.projects-list li:last-child {
+				margin-bottom: 0;
+			}
+			.project-item {
+				text-decoration: none;
+				color: inherit;
+				display: block;
+				padding: 1em 1.25em;
+				border: 2px solid rgba(73, 106, 129, 0.35);
+				border-radius: 12px;
+				transition: border-color 0.2s ease, box-shadow 0.2s ease;
+			}
+			.project-item:hover {
+				border-color: var(--accent);
+				box-shadow: 0 2px 8px rgba(var(--gray), 15%);
+			}
+			.project-item:hover .project-title {
+				color: var(--accent);
+			}
+			.project-title {
+				font-size: 1.25em;
+				font-weight: 600;
+				margin: 0 0 0.25em 0;
+				color: rgb(var(--black));
+			}
+			.project-description {
+				margin: 0;
+				color: rgb(var(--gray));
+				font-size: 0.95em;
+				line-height: 1.5;
+			}
+			.project-date {
+				margin: 0.25em 0 0 0;
+				font-size: 0.85em;
+				color: rgb(var(--gray));
+			}
 		</style>
 	</head>
 	<body>
@@ -28,8 +78,23 @@ import { SITE_TITLE } from '../consts';
 		<main>
 			<h2 class="section-title">Projects</h2>
 			<p class="section-subtitle">
-				Coming Soon
+				Notebook for me to document projects I have completed or are in progress
 			</p>
+			<ul class="projects-list">
+				{
+					projects.map((project) => (
+						<li>
+							<a href={`/projects/${project.id}/`} class="project-item">
+								<span class="project-title">{project.data.title}</span>
+								<p class="project-description">{project.data.description}</p>
+								<p class="project-date">
+									<FormattedDate date={project.data.pubDate} />
+								</p>
+							</a>
+						</li>
+					))
+				}
+			</ul>
 		</main>
 	</body>
 </html>
