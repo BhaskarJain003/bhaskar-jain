@@ -9,6 +9,7 @@ const postSchema = ({ image }: { image: (path?: string) => z.ZodTypeAny }) =>
 		pubDate: z.coerce.date(),
 		updatedDate: z.coerce.date().optional(),
 		heroImage: z.optional(image()),
+		hidden: z.boolean().optional(),
 	});
 
 const thoughts = defineCollection({

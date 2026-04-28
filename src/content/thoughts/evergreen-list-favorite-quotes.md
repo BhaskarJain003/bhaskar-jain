@@ -2,6 +2,7 @@
 title: 'Evergreen List of my Favorite Quotes'
 description: 'A collection of quotes that have resonated with me over time.'
 pubDate: 'Mar 16 2026'
+hidden: true
 ---
 
 > "Curiosity has its own reason for existing."
