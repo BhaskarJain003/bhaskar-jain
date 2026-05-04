@@ -1,0 +1,107 @@
+.ae6050-charts {
+	margin: 1.5em 0;
+}
+
+.ae6050-chart {
+	margin: 1.5em 0;
+	overflow-x: auto;
+}
+
+.ae6050-chart :global(svg) {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.ae6050-caption {
+	font-size: 0.82em;
+	color: rgb(var(--gray));
+	line-height: 1.55;
+	margin: 0.75em 0 0;
+}
+
+.ae6050-tabs {
+	display: flex;
+	gap: 0.4em;
+	margin-bottom: 0.75em;
+}
+
+.ae6050-tabs button {
+	background: none;
+	border: 1px solid rgb(var(--gray-light));
+	border-radius: 4px;
+	padding: 0.25em 0.9em;
+	font-size: 0.85em;
+	font-family: system-ui, sans-serif;
+	cursor: pointer;
+	color: rgb(var(--gray));
+	transition: background 0.15s, color 0.15s;
+}
+
+.ae6050-tabs button:hover {
+	background: rgb(var(--gray-light));
+	color: rgb(var(--gray-dark));
+}
+
+.ae6050-tabs button.ae6050-tab--active {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+
+/* Assignment airfoil schematic (static figure in MDX) */
+.ae6050-assignment-figure {
+	display: block;
+	width: 100%;
+	max-width: 560px;
+	height: auto;
+	margin: 1.25em auto;
+}
+
+/* Technical deep-dive collapsible */
+.ae6050-technical {
+	margin: 2.5em 0 0;
+	border-top: 1px solid rgb(var(--gray-light));
+	padding-top: 1em;
+}
+
+.ae6050-technical summary {
+	cursor: pointer;
+	font-size: 0.95em;
+	color: rgb(var(--gray));
+	user-select: none;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+}
+
+.ae6050-technical summary::-webkit-details-marker {
+	display: none;
+}
+
+.ae6050-technical summary::before {
+	content: '▶';
+	font-size: 0.7em;
+	transition: transform 0.15s;
+}
+
+.ae6050-technical[open] summary::before {
+	transform: rotate(90deg);
+}
+
+.ae6050-technical-body {
+	margin-top: 1.25em;
+	font-size: 0.92em;
+	color: rgb(var(--gray-dark));
+	line-height: 1.75;
+}
+
+.ae6050-technical-body h3 {
+	font-size: 1.1em;
+	margin: 1.5em 0 0.4em;
+}
+
+.ae6050-technical-body p {
+	margin-bottom: 1em;
+}

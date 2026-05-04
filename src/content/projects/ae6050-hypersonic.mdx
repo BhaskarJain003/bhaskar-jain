@@ -1,0 +1,397 @@
+---
+title: 'Mach 8: When the Air Stops Being Air'
+description: 'AE6050 Gas Dynamics project — modeling real-gas nonequilibrium effects on a hypersonic wedge airfoil and quantifying how molecular chemistry changes lift and drag predictions.'
+pubDate: 'May 2 2026'
+---
+import { Image } from 'astro:assets';
+import ae6050AirfoilAssignment from '../../assets/ae6050-airfoil-assignment.png';
+import {
+  TimescaleChart,
+  FlatSectionChart,
+  AirfoilProfileChart,
+  ForceCoeffChart,
+} from '../../components/charts/AE6050Charts';
+
+Hypersonic flight is back as a serious engineering problem. Scramjet-powered vehicles, boost-glide systems, rapid reentry capsules — all of them run into the same fundamental issue: at $M \geq 5$ and above, the air around your vehicle isn't just hot, it's *chemically different*. Molecules dissociate. The assumptions baked into standard aerodynamic tools quietly break down. And if you're sizing control surfaces or running trajectory optimization, a prediction error that compounds over hundreds of kilometers is not something you can ignore.
+
+This project — from my AE6050 Gas Dynamics course at Georgia Tech — asks a specific version of that question: for a simplified hypersonic wing flying at $M_\infty = 8$, how much do these real-gas effects actually change the lift and drag? Are they a rounding error or a design driver?
+
+The short answer: they reduce lift by 4–7% and nudge drag up by about 3%. On a conventional aircraft those numbers are noise. On a hypersonic vehicle with thin margins, they're not.
+
+## The airfoil and the flight condition
+
+The geometry is a wedge: a compression ramp angled into the flow at $\theta_1 = 18°$, a short flat middle section, and an expansion ramp angled away at $\theta_2 = 6°$. Each segment is 10 cm long. The freestream is $M_\infty = 8$, $T_\infty = 1{,}000\ \text{K}$, $p_\infty = 1{,}500\ \text{Pa}$ — representative of hypersonic cruise altitude.
+
+<Image
+	class="ae6050-assignment-figure"
+	src={ae6050AirfoilAssignment}
+	alt="Assignment schematic: supersonic flow over the curved upper surface with states 1–4, angles θ₁ and θ₂, middle segment length L_r, oblique shock at the leading compression, and expansion fan at station 3."
+/>
+
+The lower surface does all the aerodynamic work. The flow gets compressed by the shock at the leading edge, travels across the flat section, then accelerates through the expansion fan at the trailing edge. What happens to the gas chemistry along those 30 cm determines the lift and drag.
+
+## The shock and why temperature matters
+
+When the leading edge deflects flow downward at $\theta_1 = 18°$, an oblique shock forms at an angle of $\beta \approx 24°$ from the flow direction. The numbers on the other side of that shock are striking:
+
+- Pressure: $1{,}500\ \text{Pa}\ \rightarrow\ 18{,}675\ \text{Pa}$ ($\approx 12\times$ freestream)
+- Temperature: $1{,}000\ \text{K}\ \rightarrow\ T_2 = 3{,}034\ \text{K}$
+- Velocity: still $\approx 4{,}650\ \text{m/s}$ ($M_\infty = 8$ barely slows down; it just gets compressed)
+
+$T_2 = 3{,}034\ \text{K}$ is hot enough that oxygen chemistry becomes relevant. Thermodynamics says that if you held the gas at that temperature and pressure indefinitely, about 28% of the $\text{O}_2$ molecules would split into individual O atoms. Nitrogen barely moves — it needs considerably more heat to dissociate.
+
+But the gas isn't held there indefinitely. It's moving at over $4.5\ \text{km/s}$.
+
+## The timescale problem
+
+The flat section is 10 cm long. At $u_2 \approx 4{,}650\ \text{m/s}$, the gas crosses it in about $\tau_\text{flow} = 21\ \mu\text{s}$. Whether any of the chemistry or vibrational relaxation actually happens depends entirely on how that $21\ \mu\text{s}$ compares to the timescales of each physical process.
+
+<TimescaleChart client:visible />
+
+Four processes compete against that clock:
+
+- **$\text{O}_2$ vibrational relaxation** ($\tau_{v,\text{O}_2} \approx 10\ \mu\text{s}$) is right in the same ballpark as the flow time. Oxygen molecules store energy in their vibrating bonds, and at this temperature and pressure, that process takes roughly as long as the flow itself. It partially happens — but doesn't finish.
+
+- **$\text{N}_2$ vibrational relaxation** ($\tau_{v,\text{N}_2} \approx 400\ \mu\text{s}$) is $20\times$ slower than the flow. Nitrogen barely adjusts its vibrational modes at all.
+
+- **$\text{O}_2$ dissociation** ($\tau_\text{chem,O} \approx 370\ \text{ms}$) is $17{,}000\times$ slower. Even though 28% of $\text{O}_2$ *wants* to break apart at $3{,}034\ \text{K}$, the gas is long gone before more than a trace amount does.
+
+- **$\text{N}_2$ dissociation** ($\tau_\text{chem,N} \approx 5.8 \times 10^6\ \text{s}$) is essentially frozen by any measure.
+
+This analysis isn't just a sanity check — it tells you exactly which physics to model. Chemistry is frozen; $\text{O}_2$ vibrational relaxation is in nonequilibrium; everything else can be ignored.
+
+## What actually happens on the flat section
+
+With the timescale hierarchy established, the model integrates a coupled system of differential equations along the flat section. Six quantities evolve simultaneously: gas velocity $u$, translational temperature $T$, $\text{O}_2$ and $\text{N}_2$ dissociation fractions $\alpha_O$ and $\alpha_N$, and the total vibrational energy $e_v$. All coupled through mass conservation, momentum, and energy.
+
+<FlatSectionChart client:visible />
+
+Two things stand out. First, the translational temperature (the "hot" temperature driving pressure and velocity) *drops* from $T_2 = 3{,}034\ \text{K}$ to $T_3 = 2{,}819\ \text{K}$ across the flat section — the gas cools as energy transfers out of translational modes and into vibrational modes. Second, vibrational temperature starts at $T_v = 1{,}000\ \text{K}$ (the freestream value; the frozen shock heated translations but left vibrations behind) and climbs to $T_{v,3} = 1{,}812\ \text{K}$ by the end. The shaded region between the two lines is a direct measure of how far out of equilibrium the gas is.
+
+They never close the gap in 10 cm. The gas arrives at the expansion ramp still partway through catching up.
+
+## Three models, one expansion
+
+To understand how this nonequilibrium state affects the wing, the model computes the expansion ramp results under three different physical assumptions:
+
+**Frozen**: the textbook calorically perfect gas result. Chemistry and vibration don't participate; the gas behaves as if it's at the standard $\gamma = 1.4$ all the way through.
+
+**Nonequilibrium**: what the ODE actually predicts — partial vibrational relaxation, trace $\text{O}_2$ dissociation, with the composition and vibrational temperature carried from the flat-section exit.
+
+**Equilibrium-limit**: the extreme case where the gas is assumed to fully equilibrate before the expansion. This is the bounding scenario — how bad could it get?
+
+<AirfoilProfileChart client:visible />
+
+The three models agree on the compression ramp (same frozen shock for all) but diverge across the flat section and carry that difference into the expansion. By the trailing edge, the equilibrium-limit case is running noticeably cooler and lower in pressure — energy that would otherwise stay in translational modes has been distributed into chemistry and molecular vibration.
+
+## What it means for the wing
+
+Force coefficients turn the thermodynamic differences into numbers that matter for design.
+
+<ForceCoeffChart client:visible />
+
+The three baseline gas models cluster together at nearly the same drag but at meaningfully different lift values. Compared to the frozen (textbook) result, nonequilibrium physics reduces $C_L$ by about 4.3% and the equilibrium limit reduces it by 7.2%. $C_D$ increases by around 3% in both cases. The equilibrium result is the worst-case bound; the real physics falls between frozen and equilibrium.
+
+For a conventional aircraft, 4–7% on $C_L$ is background noise. For a hypersonic vehicle — where control authority is limited, margins are tight, and trim calculations are built on precise force predictions — it matters.
+
+The geometry sensitivity study makes the design levers clear. Steepening the compression ramp from $18°$ to $22°$ (Case A) pumps $C_L$ up by 38%, but drag more than doubles, collapsing the lift-to-drag ratio. Deepening the expansion from $6°$ to $10°$ (Case B) trims drag slightly with barely any lift penalty — a comparatively cheap improvement. Lift is won on the compression side; efficiency is managed on the expansion side.
+
+## Where the model stops
+
+A few things this model simplifies or omits: the shock is always treated as frozen (reasonable at this Mach number), chemistry timescales are fixed at State 2 values rather than updated locally, and only the lower surface is loaded (the upper surface is parallel to the flow and contributes nothing). The geometry is 2D. Real hypersonic vehicles have 3D real-gas effects, nose-tip ablation, ionization at higher speeds, and boundary layer coupling — none of which are here. The point is to isolate and quantify the leading-order nonequilibrium effects cleanly. That goal, at least, is achieved.
+
+Full code at **[github.com/BhaskarJain003/AE6050_Project](https://github.com/BhaskarJain003/AE6050_Project)**.
+
+---
+
+<details className="ae6050-technical">
+<summary>Technical deep dive — equations and methods</summary>
+
+<div className="ae6050-technical-body">
+
+### Task 1 — Oblique shock (State 1 → State 2)
+
+**Freestream conditions (State 1):**
+$M_1 = 8$, $p_1 = 1{,}500\ \text{Pa}$, $T_1 = 1{,}000\ \text{K}$, $\gamma = 1.4$, $R = 287\ \text{J/(kg·K)}$.
+Flow deflection angle: $\theta_1 = 18°$.
+
+**θ–β–M relation.** The weak-solution shock angle $\beta$ satisfies:
+
+$$
+\tan\theta_1 = 2\cot\beta \cdot \frac{M_1^2\sin^2\beta - 1}{M_1^2(\gamma + \cos 2\beta) + 2}
+$$
+
+Solved numerically with `scipy.optimize.brentq` by scanning for a sign change between the Mach angle $\mu = \arcsin(1/M_1)$ and $90°$.
+
+**Normal Mach numbers:**
+$$
+M_{n1} = M_1 \sin\beta, \qquad M_{n2} = \sqrt{\frac{1 + \tfrac{\gamma-1}{2}M_{n1}^2}{\gamma M_{n1}^2 - \tfrac{\gamma-1}{2}}}
+$$
+
+**Rankine–Hugoniot relations** (using the normal component $M_{n1}$):
+$$
+\frac{p_2}{p_1} = 1 + \frac{2\gamma}{\gamma+1}(M_{n1}^2 - 1)
+$$
+$$
+\frac{\rho_2}{\rho_1} = \frac{(\gamma+1)M_{n1}^2}{(\gamma-1)M_{n1}^2 + 2}
+$$
+$$
+\frac{T_2}{T_1} = \frac{p_2}{p_1} \cdot \frac{\rho_1}{\rho_2}
+$$
+
+**Downstream Mach recovery:**
+$$
+M_2 = \frac{M_{n2}}{\sin(\beta - \theta_1)}
+$$
+
+**Results:** $\beta = 24.27°$, $M_{n1} = 3.289$, $M_2 = 4.212$, $T_2 = 3{,}034.4\ \text{K}$, $p_2 = 18{,}675\ \text{Pa}$, $u_2 = 4{,}650.6\ \text{m/s}$.
+
+---
+
+### Task 2 — Chemical equilibrium composition at $(T_2,\ p_2)$
+
+**Species set:** $\{\text{N}_2, \text{N}, \text{O}_2, \text{O}\}$.
+Dissociation reactions: $\text{N}_2 \rightleftharpoons 2\text{N}$, $\text{O}_2 \rightleftharpoons 2\text{O}$.
+
+**Dissociation fraction $\alpha$.** For a family $A_2 \rightleftharpoons 2A$, using 1 mol of initial diatomic as basis:
+$$
+n_A = 2\alpha, \qquad n_{A_2} = 1-\alpha
+$$
+so the mole fractions within the family are:
+$$
+\chi_A = \frac{2\alpha}{1+\alpha}, \qquad \chi_{A_2} = \frac{1-\alpha}{1+\alpha}
+$$
+
+Equilibrium composition computed with Cantera at fixed $(T_2, p_2)$.
+
+**Results:** $\chi_O = 0.1117$, $\chi_{O_2} = 0.1424$, $\chi_{N_2} = 0.7458$, $\chi_N \approx 0$. Roughly 28% of $\text{O}_2$ would dissociate at equilibrium; nitrogen dissociation is negligible.
+
+---
+
+### Task 3 — Timescale analysis
+
+**Flow residence time:**
+$$
+\tau_\text{flow} = \frac{L_r}{u_2} = \frac{0.10\ \text{m}}{4650.6\ \text{m/s}} = 2.150 \times 10^{-5}\ \text{s}
+$$
+
+**Vibrational relaxation (Millikan–White).** For diatomic species $i$ colliding with bath species $j$, the pair relaxation time at temperature $T$ and partial pressure $p_j$ is:
+$$
+p_j\,\tau_{v,ij} = \exp\!\left[A_{ij}\!\left(T^{-1/3} - B_{ij}\right) - 18.42\right] \quad \text{(atm·s)}
+$$
+with pair constants $A_{ij}$ and $B_{ij}$ from the Millikan–White table. Mixture relaxation time:
+$$
+\tau_{v,i}^{-1} = \sum_j \frac{p_j}{\tau_{v,ij}(T)}
+$$
+evaluated at $(T_2, p_2)$ using frozen-air partial pressures $p_j = X_j p_2$.
+
+**Results:**
+$$
+\tau_{v,\text{O}_2} = 1.005 \times 10^{-5}\ \text{s}, \qquad \tau_{v,\text{N}_2} = 4.010 \times 10^{-4}\ \text{s}
+$$
+
+**Chemical dissociation timescales (Dunn–Kang Arrhenius).** Total molar concentration:
+$$
+[M] = \frac{p_2}{R_u T_2} \quad \text{(converted to mol/cm}^3\text{)}
+$$
+
+Forward rate constants:
+$$
+k_{f,\text{O}}(T) = 3.6 \times 10^{18}\, T^{-1} \exp\!\left(-\frac{59{,}500}{T}\right) \quad \text{cm}^3/(\text{mol·s})
+$$
+$$
+k_{f,\text{N}}(T) = 1.9 \times 10^{17}\, T^{-1/2} \exp\!\left(-\frac{113{,}000}{T}\right) \quad \text{cm}^3/(\text{mol·s})
+$$
+
+Chemistry timescale:
+$$
+\tau_{\text{chem},i} = \frac{1}{k_{f,i}(T_2) \cdot [M]}
+$$
+**Results:** $\tau_{\text{chem},O} = 3.735 \times 10^{-1}\ \text{s}$, $\tau_{\text{chem},N} = 5.834 \times 10^{6}\ \text{s}$.
+
+**Classification criterion:** ratio $r = \tau_\text{flow}/\tau_\text{process}$.
+$r < 0.1$ → frozen; $0.1 \leq r \leq 10$ → nonequilibrium; $r > 10$ → fast/equilibrated.
+
+| Process | $\tau$ | $r$ | Classification |
+|---|---|---|---|
+| $\text{O}_2$ vibration | $1.005 \times 10^{-5}\ \text{s}$ | 2.14 | **Nonequilibrium** |
+| $\text{N}_2$ vibration | $4.010 \times 10^{-4}\ \text{s}$ | 0.054 | Frozen |
+| $\text{O}_2$ dissociation | $3.735 \times 10^{-1}\ \text{s}$ | $5.8 \times 10^{-5}$ | Frozen |
+| $\text{N}_2$ dissociation | $5.834 \times 10^{6}\ \text{s}$ | $3.7 \times 10^{-12}$ | Frozen |
+
+---
+
+### Task 4 — Nonequilibrium relaxation ODE (State 2 → State 3)
+
+**Assumptions:**
+- Steady, one-dimensional, constant-area flow
+- Four-species air: $\{\text{N}_2, \text{N}, \text{O}_2, \text{O}\}$
+- Chemistry relaxation times held fixed at State-2 values
+- Two-temperature model: separate translational $T$ and vibrational $T_v$
+- Vibrational mode enters cold at $T_v(0) = T_1 = 1{,}000\ \text{K}$ (shock is frozen in vibration)
+- $\text{N}_2$ dissociation and vibration treated as frozen
+
+**Conservation laws (constant area, $\rho u = \text{const}$):**
+$$
+\rho u = \rho_2 u_2, \qquad u\frac{du}{dx} + \frac{1}{\rho}\frac{dp}{dx} = 0, \qquad u\frac{du}{dx} + \frac{dh}{dx} = 0
+$$
+
+**Mixture gas constant** (1 mol initial air as basis):
+$$
+n_{\text{N}_2} = 0.79(1-\alpha_N),\quad n_N = 1.58\,\alpha_N,\quad n_{\text{O}_2} = 0.21(1-\alpha_O),\quad n_O = 0.42\,\alpha_O
+$$
+$$
+R_\text{mix}(\alpha_O, \alpha_N) = R_\text{air}\!\left[1 + 0.79\,\alpha_N + 0.21\,\alpha_O\right], \qquad R_\text{air} = \frac{R_u}{0.79\,W_{\text{N}_2} + 0.21\,W_{\text{O}_2}}
+$$
+
+**Translational–rotational heat capacity** (diatomic $= \tfrac{7}{2}R_i$, atomic $= \tfrac{5}{2}R_i$, summed by mass fraction):
+$$
+c_{p,\text{tr}} = Y_{\text{N}_2} c_{p,\text{N}_2} + Y_N c_{p,N} + Y_{\text{O}_2} c_{p,\text{O}_2} + Y_O c_{p,O}
+$$
+
+**Vibrational energy** (harmonic oscillator; $\Theta_{v,\text{N}_2} = 3{,}390\ \text{K}$, $\Theta_{v,\text{O}_2} = 2{,}238.7\ \text{K}$):
+$$
+e_v(T_v, \alpha_O, \alpha_N) = \sum_{i \in \{\text{N}_2,\,\text{O}_2\}} Y_i R_i \frac{\Theta_{v,i}}{\exp(\Theta_{v,i}/T_v) - 1}
+$$
+
+**Relaxation source terms.** Chemistry (Landau–Teller toward local equilibrium):
+$$
+\frac{d\alpha_O}{dx} = \frac{\alpha_{O,\text{eq}}(T,p) - \alpha_O}{u\,\tau_{\text{chem},O}}, \qquad \frac{d\alpha_N}{dx} = \frac{\alpha_{N,\text{eq}}(T,p) - \alpha_N}{u\,\tau_{\text{chem},N}}
+$$
+
+Vibrational energy (Landau–Teller, per mode):
+$$
+\frac{de_v}{dx} = \frac{1}{u}\!\left[\frac{e_{v,\text{N}_2}^\text{eq}(T) - e_{v,\text{N}_2}(T_v)}{\tau_{v,\text{N}_2}(T,p)} + \frac{e_{v,\text{O}_2}^\text{eq}(T) - e_{v,\text{O}_2}(T_v)}{\tau_{v,\text{O}_2}(T,p)}\right]
+$$
+
+**Coupled $2\times 2$ ODE system** (from differentiating $p = \rho R_\text{mix} T$ along $x$ and substituting into momentum and energy):
+$$
+\begin{bmatrix}
+u - R_\text{mix}T/u & R_\text{mix} \\
+u & c_{p,\text{tr}}
+\end{bmatrix}
+\begin{bmatrix}
+du/dx \\ dT/dx
+\end{bmatrix}
+=
+\begin{bmatrix}
+b_1 \\ b_2
+\end{bmatrix}
+$$
+
+Source terms:
+$$
+b_1 = -T\!\left(\frac{\partial R_\text{mix}}{\partial \alpha_O}\frac{d\alpha_O}{dx} + \frac{\partial R_\text{mix}}{\partial \alpha_N}\frac{d\alpha_N}{dx}\right)
+$$
+$$
+b_2 = -\!\left(T\frac{\partial c_{p,\text{tr}}}{\partial \alpha_O} + q_O\right)\!\frac{d\alpha_O}{dx} - \!\left(T\frac{\partial c_{p,\text{tr}}}{\partial \alpha_N} + q_N\right)\!\frac{d\alpha_N}{dx} - \frac{de_v}{dx}
+$$
+
+Here $q_O = 0.21 R_u \Theta_{d,O_2}/W_\text{air}$ is the heat-of-dissociation sink ($\Theta_{d,O_2} = 59{,}500\ \text{K}$, $\Theta_{d,N_2} = 113{,}000\ \text{K}$).
+
+**Initial conditions at** $x = 0$:
+$$
+u(0) = 4{,}650.6\ \text{m/s},\quad T(0) = 3{,}034.4\ \text{K},\quad \alpha_O(0) = \alpha_N(0) = 0,\quad e_v(0) = 4.311\times10^4\ \text{J/kg}
+$$
+
+Integrated with `scipy.integrate.solve_ivp` (RK45, $\text{rtol} = 10^{-6}$, $\text{atol} = 10^{-9}$).
+
+**Results at State 3:** $T_3 = 2{,}818.6\ \text{K}$, $T_{v,3} = 1{,}812.0\ \text{K}$, $p_3 = 17{,}295\ \text{Pa}$, $M_3 = 4.373$, $\alpha_{O,3} = 1.14\times10^{-5}$ (trace).
+
+---
+
+### Task 5 — Prandtl–Meyer expansion (State 3 → State 4)
+
+**Three inlet conditions** fed into the same frozen Prandtl–Meyer routine:
+
+- **Frozen inlet:** State 2 directly — $T_{3,\text{fr}} = 3{,}034.4\ \text{K}$, $p_{3,\text{fr}} = 18{,}675\ \text{Pa}$, $M_{3,\text{fr}} = 4.212$
+- **Nonequilibrium inlet:** Task 4 exit — $T_{3,\text{neq}} = 2{,}818.6\ \text{K}$, $p_{3,\text{neq}} = 17{,}295\ \text{Pa}$, $M_{3,\text{neq}} = 4.373$
+- **Equilibrium-limit inlet:** constant-area reactive jump from State 2 — $T_{3,\text{eq}} = 2{,}701.8\ \text{K}$, $p_{3,\text{eq}} = 16{,}889\ \text{Pa}$, $M_{3,\text{eq}} = 4.418$
+
+**Prandtl–Meyer function** (frozen $\gamma$):
+$$
+\nu(M) = \sqrt{\frac{\gamma+1}{\gamma-1}}\arctan\!\sqrt{\frac{\gamma-1}{\gamma+1}(M^2-1)} - \arctan\!\sqrt{M^2-1}
+$$
+
+$M_4$ solves $\nu(M_4) - \nu(M_3) = \delta = 6°$ via `brentq`. Isentropic relations close the state (frozen composition across the fan):
+$$
+\frac{T_4}{T_3} = \frac{1 + \tfrac{\gamma-1}{2}M_3^2}{1 + \tfrac{\gamma-1}{2}M_4^2}, \qquad \frac{p_4}{p_3} = \left(\frac{T_4}{T_3}\right)^{\gamma/(\gamma-1)}
+$$
+
+**Results at State 4:**
+
+| Model | $p_4\ \text{(Pa)}$ | $T_4\ \text{(K)}$ | $M_4$ |
+|---|---|---|---|
+| Frozen | 9,544 | 2,505 | 4.738 |
+| Nonequilibrium | 8,605 | 2,309 | 4.945 |
+| Equilibrium | 8,314 | 2,202 | 5.007 |
+
+---
+
+### Task 6 — Aerodynamic force coefficients
+
+**Geometry.** Three equal segments $L_1 = L_\text{flat} = L_2 = 0.10\ \text{m}$, span $= 1.0\ \text{m}$.
+
+Reference chord:
+$$
+c_\text{ref} = L_1\cos\theta_1 + L_\text{flat} + L_2\cos\theta_2 = 0.2946\ \text{m}
+$$
+
+**Freestream dynamic pressure:**
+$$
+q_\infty = \tfrac{1}{2}\gamma p_\infty M_\infty^2 = 67{,}200\ \text{Pa}
+$$
+
+**Surface pressure** (piecewise constant; upper surface contributes nothing):
+
+- Compression ramp: $p_2 = 18{,}675\ \text{Pa}$ (all models)
+- Flat section: $p_3$ (model-dependent)
+- Expansion ramp: $p_4$ (model-dependent)
+
+**Force integral.** Excess-pressure force per unit span with outward panel normals:
+$$
+\mathbf{F} = -\int_\text{lower} (p - p_\infty)\,\hat{\mathbf{n}}\,ds
+$$
+
+Lift and drag coefficients:
+$$
+C_L = \frac{F_y}{q_\infty\,c_\text{ref}\cdot\text{span}}, \qquad C_D = \frac{F_x}{q_\infty\,c_\text{ref}\cdot\text{span}}
+$$
+
+**Results:**
+
+| Model | $C_L$ | $C_D$ | $L/D$ |
+|---|---|---|---|
+| Frozen | 0.2305 | 0.02038 | 11.31 |
+| Nonequilibrium | 0.2207 | 0.02099 | 10.51 |
+| Equilibrium | 0.2139 | 0.02117 | 10.11 |
+| 22° ramp (A) | 0.3042 | 0.03898 | 7.80 |
+| 10° expansion (B) | 0.2089 | 0.01931 | 10.82 |
+
+**Changes relative to frozen baseline:**
+$$
+\Delta C_L|_\text{neq} = -0.0098\ (-4.3\%), \qquad \Delta C_D|_\text{neq} = +6.1\times10^{-4}\ (+3.0\%)
+$$
+$$
+\Delta C_L|_\text{eq} = -0.0165\ (-7.2\%), \qquad \Delta C_D|_\text{eq} = +7.9\times10^{-4}\ (+3.9\%)
+$$
+
+---
+
+### Model assumptions and limitations
+
+1. **Frozen oblique shock** — shock treated as calorically perfect ($\gamma = 1.4$) regardless of post-shock temperature; valid since the shock is thin relative to all chemical timescales.
+2. **Chemistry relaxation times fixed at State-2 values** — $\tau_\text{chem}$ evaluated once at $(T_2, p_2)$ and held constant; local $\alpha_\text{eq}(T,p)$ still uses the actual local state.
+3. **$\text{N}_2$ chemistry and vibration frozen** — $\tau_{v,\text{N}_2}/\tau_\text{flow} \approx 19$; $\tau_{\text{chem},N}/\tau_\text{flow} \approx 10^{12}$.
+4. **Lower surface only** — upper surface is parallel to $\mathbf{u}_\infty$ and contributes no excess pressure.
+5. **Frozen composition across Prandtl–Meyer fan** — species fractions and $e_v$ carried unchanged through the expansion; local frozen $\gamma$ computed from State-3 composition.
+6. **Two-dimensional geometry** — no spanwise effects, tip vortices, or 3D shock interactions.
+7. **Inviscid flow** — no boundary layer; skin friction and heat transfer not computed.
+8. **No ionization** — negligible at $T_2 \approx 3{,}000\ \text{K}$; relevant above $\sim 6{,}000\ \text{K}$.
+
+</div>
+</details>
+
+---
+
+<p className="credit"><em>Project for AE6050 Gas Dynamics, Georgia Tech, Spring 2026.</em></p>
