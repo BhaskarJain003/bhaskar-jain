@@ -122,6 +122,83 @@ hr {
 	}
 }
 
+/* ── Collapsible citations block ─────────────────────────────────────────────
+   Used in MDX articles via <details class="cite-section"> / <ol class="cite-list">
+   Reuse this pattern in any article — no extra imports needed.
+   ──────────────────────────────────────────────────────────────────────────── */
+.cite-section {
+	margin-top: 2em;
+	border-top: 1px solid rgb(var(--gray-light));
+	padding-top: 0.75em;
+}
+.cite-section > summary {
+	font-size: 0.75em;
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	color: rgb(var(--gray));
+	cursor: pointer;
+	user-select: none;
+	list-style: none;          /* hide the default triangle in Firefox */
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+}
+.cite-section > summary::-webkit-details-marker {
+	display: none;             /* hide default triangle in Chrome/Safari */
+}
+.cite-section > summary::before {
+	content: '▶';
+	font-size: 0.7em;
+	transition: transform 0.15s ease;
+	color: rgb(var(--gray));
+}
+.cite-section[open] > summary::before {
+	transform: rotate(90deg);
+}
+.cite-section > summary:hover {
+	color: var(--accent);
+}
+.cite-section > summary:hover::before {
+	color: var(--accent);
+}
+.cite-list {
+	margin: 1em 0 0.5em 0;
+	padding-left: 1.5em;
+	font-size: 0.72em;
+	line-height: 1.65;
+	color: rgb(var(--gray));
+}
+.cite-list li {
+	margin-bottom: 0.6em;
+}
+.cite-list li em {
+	font-style: italic;
+}
+.cite-list li a {
+	color: rgb(var(--gray));
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.cite-list li a:hover {
+	color: var(--accent);
+}
+
+/* Inline superscript citation links: [1], [2,3], etc. */
+.cite-ref {
+	font-size: 0.7em;
+	vertical-align: super;
+	line-height: 0;
+	white-space: nowrap;
+}
+.cite-ref a {
+	color: var(--accent);
+	text-decoration: none;
+	padding: 0 1px;
+}
+.cite-ref a:hover {
+	text-decoration: underline;
+}
+
 .sr-only {
 	border: 0;
 	padding: 0;

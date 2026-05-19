@@ -1,0 +1,699 @@
+---
+title: 'How Much Would Asteroid Mining Actually Cost?'
+description: 'A first-principles interactive model estimating $/kg of resource delivered to LEO from near-Earth asteroids, with orbital mechanics computed per asteroid from JPL SBDB trajectories.'
+pubDate: 'May 13 2026'
+---
+
+import AsteroidMiningModel from '../../components/charts/AsteroidMiningModel';
+
+I recently read [https://andrewmccalip.com/space-datacenters](https://andrewmccalip.com/space-datacenters) and enjoyed the way he presented his read on Orbital Data Centers and their economic feasibility. I've always had a similar question for Asteroid Mining. Although it's not as hot of a topic right now, it was still fun for me to build this little model and run some example cases. Thank you to [Claude Code](https://claude.ai/code) and [Cursor](https://cursor.com) for doing the legwork on the coding.
+
+The economics of asteroid mining come down to one number: \$/kg delivered to orbit. Everything else — the orbital mechanics, the mineralogy, the spacecraft design — is in service of moving that number below the price you can get for the resource on the open market (or, for water and propellant, below what it costs to launch the equivalent mass from Earth). I want to contribute meaningfully to this conversation by using realistic numbers to estimate what it would take for asteroid mining to be financially viable at scale.
+
+The model below builds that number from first principles and compares it to today's cost of Platinum Group Metals (PGMs). It draws on orbital data for the ~1,200 near-Earth asteroids with a measured diameter in the JPL Small-Body Database<sup class="cite-ref"><a href="#ref-1">[1]</a><a href="#ref-2">[2]</a></sup>, computes mission $\Delta v$ from their orbital elements using a Hohmann transfer approximation<sup class="cite-ref"><a href="#ref-7">[7]</a></sup>, and stacks up launch cost, operations cost, and amortized development cost against the resource yield from each target. Fleet selection is simple: pick the $N$ most accessible targets first, sorted by outbound $\Delta v$. The exact build-current count is displayed in the model's data-source footer below.
+
+Full code used to build this model can be found at [https://github.com/BhaskarJain003/Asteroid-Mining](https://github.com/BhaskarJain003/Asteroid-Mining). I am welcome to all feedback, comments, and concerns in case I have missed something or my process/assumptions are incorrect.
+
+<hr />
+
+## The Model
+
+<AsteroidMiningModel client:visible />
+
+<hr />
+
+## Analysis
+
+The model answers one question. But looking at where it breaks — the places where a slider move produces a non-linear jump in the output — tells you something more interesting: which parts of the asteroid mining problem are actually solved, and which ones are still wide open.
+
+### Overall: Is Asteroid Mining Actually Economically Viable?
+
+The honest answer is: not yet, not at commercial scale, and not in the gold-rush framing that dominates the popular press. But that framing is probably the wrong one to begin with. The more useful question is: under what specific conditions does the \$/kg figure drop below what a market will pay? This model gives a concrete answer — and those conditions are narrower and more specific than most coverage suggests.
+
+At the model's default settings — Falcon 9 launch pricing, chemical propulsion, a spectrally unclassified asteroid fleet, a 0.6× return $\Delta v$ factor — the output for a 10-mission fleet lands somewhere between \$100,000 and \$10,000,000 per kilogram depending on the unknown-class assumptions. That is several orders of magnitude above the ~\$30,000/kg platinum price. Even pushing every slider toward its most favorable value, closing the economics under today's launch costs requires a rare combination: a low-$\Delta v$ target, a spectrally confirmed metal-rich M-type asteroid, a large enough diameter to fill a cargo hold, and a fleet large enough to dilute development cost. The probability that all of these hold simultaneously for any given object in today's catalog is low.
+
+The picture shifts materially in two scenarios. The first is water. Delivering water from a C-type asteroid to a cislunar propellant depot doesn't compete with the platinum price — it competes with the cost of launching water from Earth's surface. Even in a Starship-era launch environment, that cost is likely to remain in the hundreds to low thousands of dollars per kilogram. The best-case water delivery missions — low-$\Delta v$, water-rich C-types, depot delivery without Earth re-entry — can close at \$/kg figures competitive with surface launch, and unlike PGMs, more supply doesn't crash the benchmark price. The second scenario is dramatically lower launch costs. At SpaceX's stated \$100/kg Starship target, propellant mass stops being the dominant cost term and development-cost amortization takes over — a cost structure that improves predictably with fleet size and operational experience.
+
+There is also an asymmetry between the two resource types worth naming directly. Water's benchmark price — the cost of launching it from Earth — won't collapse if asteroid supply increases, because propellant demand in orbit is expected to grow with launch cadence. PGMs have the opposite problem: the entire current global platinum market is roughly 170 tonnes per year in mine production,<sup class="cite-ref"><a href="#ref-11">[11]</a></sup> and a single 100-meter M-type asteroid contains millions of tonnes of metal. Any mission that actually returns PGM-scale deposits to Earth would crash the price it is trying to sell into, destroying the value in transit. The only escape valve is a large in-space economy with genuine PGM demand that does not yet exist. Elvis (2014) captures this as a "very few, very rich" market structure<sup class="cite-ref"><a href="#ref-12">[12]</a></sup> — the value lies in locking down one of the handful of accessible PGM-bearing targets before anyone else, not building a commodity extraction industry.
+
+The constraint that neither scenario resolves is information. The single largest variable in this model is spectral classification, and roughly 87% of diameter-known NEAs have none. The same orbital mechanics that make an asteroid an attractive target tell you nothing about what it's made of. A well-characterized, low-$\Delta v$, water-rich C-type is a viable near-term business case. An unclassified object at the same orbital distance could be a silicate S-type with effectively zero economic value for mining. Until that spectral gap is closed — through telescope campaigns or characterization missions — the economics of any specific target cannot be evaluated with meaningful precision. The sections below trace each of these constraints in detail.
+
+### The $\Delta v$ Frontier Is Narrow
+
+The most striking output from this model isn't a dollar figure — it's the shape of the accessible target pool. Of the ~1,200 diameter-known NEAs, the model returns a usable fleet of 845 after the 20 km/s $\Delta v$ cutoff. But "usable" is doing a lot of work. At a 5 km/s ceiling — where chemical propulsion is economically tractable at reasonable fleet sizes — you're looking at a handful of objects. Martin Elvis's 2014 analysis found only about ten platinum-group metal ore-bearing NEAs accessible at 4.5 km/s $\Delta v$; he separately estimates that roughly 25% of all NEAs are *orbitally reachable* at 5.7 km/s — but orbital accessibility is not the same as containing mineable ore.<sup class="cite-ref"><a href="#ref-12">[12]</a></sup> In this model, most of the fleet is clustered between 6 and 14 km/s outbound $\Delta v$, which is firmly in solar-electric-propulsion (SEP) territory.
+
+This matters because SEP and chemical propulsion are not interchangeable. Chemical engines deliver high thrust quickly — you can get in and out fast, which matters for mission duration costs. SEP is extraordinarily fuel-efficient (Isp of 1,500–3,000 s vs. 300–450 s for chemical) but produces millinewtons of thrust, so transfer times stretch from months to years. The Hayabusa2 mission to Ryugu used ion engines and took six years from launch to sample return.<sup class="cite-ref"><a href="#ref-19">[19]</a></sup> That's not a bug — it's the reason the mission was economically feasible at all. But it means mission duration costs in the model are not independent of propulsion choice. Switching the Isp slider to SEP values without also increasing the mission duration slider produces an optimistic but physically inconsistent result. A future version of this model should couple these.
+
+My takeaway is that without real classification of asteroids, asteroid mining is simply not a backable venture. Hence, this is why Astroforge is sending satellites to collect data on asteroids. However, one decently sized asteroid with enough PGM mass can pay huge. This a space where very few assets (asteroids) matter and so once the data layer behind other asteroids is significantly improved, it will be hard to ensure profitability. 
+
+### The Taxonomy Problem Dominates Everything Else
+
+Slide the Unknown taxonomy fraction up in the model and watch the output range explode. This is the model's most honest feature: for ~87% of the diameter-known NEA subset — and a far larger fraction if you include the ~40,000 NEAs without measured diameters — we have no spectral classification. We don't know if they're metal-rich M-types, water-bearing C-types, or silicate S-types with low resource fractions in either category. The resource mass fraction $f_{\text{resource}}$ for M-type asteroids can be 0.60–0.95 (mostly metal); for C-types it's essentially zero for metals but up to 0.20 for water. That spread is three to four orders of magnitude in delivered resource mass for similarly-sized objects.
+
+This isn't a gap that better orbital data fills. You can track an asteroid's position to nanometer precision from astrometry and still have no idea what it's made of. Spectral classification requires a dedicated ground or space telescope campaign. The WISE mission improved albedo estimates for thousands of objects, and the NEOWISE extended mission pushed further<sup class="cite-ref"><a href="#ref-30">[30]</a></sup> — but most of the population remains spectrally dark. AstroForge's first mission, Odin, lost contact in March 2025 before completing its flyby;<sup class="cite-ref"><a href="#ref-31">[31]</a></sup> their planned Deepspace-2 mission in 2026 aims to be the first private landing on a body outside Earth's gravitational influence — precisely to close this gap for one object.<sup class="cite-ref"><a href="#ref-32">[32]</a></sup> One.
+
+The practical implication: if you're building a portfolio argument for asteroid mining — "even if some targets are duds, the aggregate works" — you need spectral data before you can make it. The model quantifies the uncertainty; solving it is a telescope problem, not a spacecraft problem.
+
+### The Fleet Size Curve Has an Inflection Point
+
+One of the more useful outputs you can generate with this model isn't a single \$/kg figure — it's the \$/kg vs. fleet size curve. Development cost amortization drives a steep decline in the early missions: a \$500M development cost shared across 2 missions costs \$250M each; shared across 20 missions it costs \$25M each. That math favors large fleets aggressively.
+
+But there's a countervailing force. Fleet selection in the model works greedily: pick the lowest $\Delta v$ targets first. The fifth target is always harder to reach than the fourth. As fleet size grows, you're pulling in progressively higher $\Delta v$ asteroids, which require exponentially more propellant. At some fleet size, the marginal gain from dev cost dilution is exactly offset by the marginal cost increase from worse targets. That inflection point — and where it sits relative to the number of economically-viable targets — is the actual business model question.
+
+At current launch costs (~\$2,720/kg to LEO for a dedicated Falcon 9) and chemical propulsion defaults, the model shows this inflection typically appearing around 10–20 missions. The practical implication is that asteroid mining isn't a "build one spacecraft and see" industry. The economics are structured such that you need to commit to a substantial fleet upfront, before you have operational data, to get the cost curve into viable territory. That's a capital formation problem as much as an engineering one.
+
+### What Starship Changes — and What It Doesn't
+
+The single biggest parameter shift the model can absorb is launch cost. The gap between \$2,720/kg (current Falcon 9 dedicated launch pricing)<sup class="cite-ref"><a href="#ref-17">[17]</a></sup> and \$100/kg (SpaceX's stated Starship design target)<sup class="cite-ref"><a href="#ref-18">[18]</a></sup> changes the economics dramatically — but not uniformly.
+
+At \$100/kg launch cost, the propellant mass required for a 6 km/s mission becomes cheap enough that it's no longer the dominant cost term. Development cost amortization and operations cost take over. That's actually good news: those costs improve predictably with scale and experience, whereas propellant cost is dictated by physics and can't be engineered away. The transition from a propellant-dominated regime to a fixed-cost-dominated regime is visible in the model — there's a launch price threshold below which the \$/kg output becomes relatively flat with further launch cost improvements, and steep with fleet size.
+
+What Starship doesn't change is the taxonomy problem, the narrow accessible target pool, or the return $\Delta v$ compounding. Those are physics and data constraints, not cost constraints. The infrastructure revolution makes asteroid mining viable in principle at lower resource fractions and smaller asteroids. It doesn't tell you which rock to go to first.
+
+The real near-term opportunity, given all of this, is probably narrower and weirder than the popular framing suggests: one or two well-characterized, low $\Delta v$, spectrally classified C-type asteroids, targeted for water delivery to a Starship-era propellant depot in LEO, with aerobraking return and a fleet of lightweight SEP spacecraft amortizing a modest development cost. Not a gold rush. A single, specific bet on a single, specific supply chain.
+
+<hr />
+
+## Technical Deep Dive
+
+<div class="deep-dive-callout">
+  <p>This section documents every equation in the model, the assumptions behind each one, and where those assumptions break down. The goal is to be inspectable: if you think a number is wrong, you should be able to find exactly where it enters the calculation. The conclusions and thinking about the implications of this model are all found above. This section is so that others can verify my work!</p>
+  <p class="deep-dive-callout-sub">Do not read this section if you don't want the nitty gritty details and numbers.</p>
+</div>
+
+### Orbital Data
+
+The model uses the subset of NEAs from the JPL Small-Body Database (SBDB)<sup class="cite-ref"><a href="#ref-1">[1]</a></sup> and Lowell Observatory AstOrb catalog<sup class="cite-ref"><a href="#ref-2">[2]</a></sup> that have a measured diameter — approximately 1,200 objects of the ~41,000 total NEAs in the merged catalog. The diameter filter is severe by design (see below), but everything that survives it is real data, not estimation. All objects are NEOs — near-Earth objects with orbits that bring them within 1.3 AU of the Sun — belonging to one of four families defined by perihelion and semi-major axis relative to Earth:
+
+| Class | Full name | Orbit |
+|-------|-----------|-------|
+| APO | Apollo | $a \geq 1.0$ AU, $q \leq 1.017$ AU — semi-major axis outside Earth's orbit, but perihelion inside it. Earth-crossing. The most populous NEA class (~60% of known NEAs). |
+| AMO | Amor | $1.017 < q \leq 1.3$ AU — perihelion just outside Earth's orbit; currently non-crossing, but secular drift can make them crossers over millennia. |
+| ATE | Aten | $a < 1.0$ AU, $Q \geq 0.983$ AU — semi-major axis inside Earth's orbit, aphelion outside; Earth-crossing. |
+| IEO | Interior Earth Object (Atira) | $Q < 0.983$ AU — orbit entirely interior to Earth's; the rarest class. |
+
+The 1.017 and 0.983 AU boundaries are Earth's own aphelion and perihelion distances ($e_\oplus \approx 0.017$). All four classes are included because each can present accessible transfer windows from LEO depending on orbital phase. The following orbital elements are used directly:
+
+| Symbol | Field | Description |
+|--------|-------|-------------|
+| $a$ | `a` | Semi-major axis [AU] |
+| $e$ | `e` | Eccentricity |
+| $i$ | `i` | Inclination [degrees] |
+| $q = a(1-e)$ | derived | Perihelion distance [AU] |
+
+**Filter rationale.** Three criteria are applied, each with a specific physical or practical motivation:
+
+- **$0 < e < 1$** (bound elliptical orbits): removes hyperbolic or parabolic objects ($e \geq 1$), which are interstellar interlopers or escape trajectories that cannot be rendezvoused with on a closed mission. Objects with $e = 0$ are excluded as likely data artifacts (no real asteroid has a perfectly circular orbit).
+- **$0.1 < a < 4\;\text{AU}$**: these are pragmatic catalog pre-filters, not bounds drawn from the mining accessibility literature (which uniformly uses $\Delta v$ thresholds as the real criterion). In practice, neither bound cuts much real data: no confirmed NEA in the SBDB has $a < 0.1$ AU, so the lower bound is effectively a guard against catalog artifacts. Objects with $a > 4$ AU that still qualify as NEAs (perihelion $q < 1.3$ AU) require eccentricity $e > 0.675$, which produces $\Delta v_\text{out}$ well above the 20 km/s cutoff and are excluded there anyway; the 4 AU bound is just a cheaper upstream filter. The $\Delta v$ cutoff described below is where the real accessibility selection happens.
+- **Diameter available**: the model requires a physical size to estimate resource mass (see Resource Yield section). This is the dominant filter by far: most detected NEAs are known only from astrometric observations and have no measured diameter. Of the ~41,000 NEAs in the merged catalog, **only ~1,200 objects survive all three criteria** — the exact initial count is printed by the build script when run on the full dataset, and shown in the data footer of the interactive model above. A future revision of this model will estimate diameters from absolute magnitude $H$ via the standard $D = 1329 / \sqrt{p_V} \cdot 10^{-H/5}$ relation with an assumed albedo $p_V \approx 0.14$, which would push the usable NEA count back into the thousands at the cost of introducing a documented ±30%-per-object diameter uncertainty.
+
+**Why the $\Delta v_\text{out} > 20\;\text{km/s}$ cutoff?** $\Delta v$ is the total velocity change a spacecraft must execute, summed across all burns in a mission — departure from LEO, trajectory corrections, rendezvous at the asteroid, and return. It is the single most important quantity in mission design because propellant mass grows *exponentially* with $\Delta v$ via the Tsiolkovsky rocket equation. To calibrate scale: escaping Earth from LEO costs ~3.2 km/s; a Hohmann transfer to Mars costs ~5.6 km/s from LEO; most of the NEAs in this model have outbound $\Delta v$ in the 4–9 km/s range. At 20 km/s with chemical propulsion ($v_e \approx 3.14\;\text{km/s}$), the rocket equation gives $e^{20/3.14} \approx 580$ — meaning 579 kg of propellant for every 1 kg of dry spacecraft. No mining architecture can close its economics in that regime.
+
+**A note on the choice of 20 km/s:** this is a deliberate modeling decision, not a standard drawn from the literature. The most-cited accessibility study, Elvis (2014)<sup class="cite-ref"><a href="#ref-12">[12]</a></sup>, uses a far stricter threshold of $\Delta v < 4.5\;\text{km/s}$ — finding only ~10 platinum-group-metal ore-bearing NEAs accessible under that criterion with near-term propulsion. Our 20 km/s ceiling is intentionally permissive: it captures targets that would require advanced propulsion or longer missions, letting the economic model (rather than a hard orbital cutoff) determine what is viable for a given architecture. Objects above 20 km/s are excluded not because the literature designates them inaccessible, but because the rocket equation makes them non-starters at any realistic spacecraft mass ratio.
+
+Spectral taxonomy (needed for compositional classification) is assembled from four sources, applied as a priority cascade by `build_website_data.py`: (1) SBDB `spec_B` Bus–DeMeo<sup class="cite-ref"><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a></sup> and `spec_T` Tholen<sup class="cite-ref"><a href="#ref-5">[5]</a></sup>; (2) the MITHNEOS NIR spectroscopy program<sup class="cite-ref"><a href="#ref-34">[34]</a></sup>; (3) the Neese (2010) multi-survey compilation<sup class="cite-ref"><a href="#ref-35">[35]</a></sup>, which folds in Bus, S3OS2, ECAS, and Tholen results; and (4) SDSS Moving Object Catalog photometric classifications<sup class="cite-ref"><a href="#ref-36">[36]</a></sup>. **The catch is that catalogs 2–4 are dominated by main-belt asteroids, not NEAs.** Within the diameter-filtered subset (~1,200 NEAs), roughly **87% still have no taxonomy assignment** even after all four sources are joined — and the situation is much worse on the full ~41,000-row catalog before the diameter filter, where the figure approaches 99.5%. Adding SDSS, Neese, and MITHNEOS lifts the classified count by only ~100 objects beyond what SBDB's own `spec_B`/`spec_T` columns already provide. The exact, build-current percentages are shown directly in the Per-family material properties panel in the interactive model above. Because the unknown family overwhelmingly dominates by count, the two sliders for unknown-family density and resource mass fraction drive almost the entire output: varying the Unknown metal fraction from 2% to 15% alone shifts the fleet {'$'}/kg by roughly an order of magnitude. The family defaults are order-of-magnitude estimates based on average chondritic composition; they are intentionally exposed as sliders rather than fixed constants because this taxonomy uncertainty is the model's single largest unknown.
+
+### Resource Yield and Optimal Surface Time
+
+Diameter $d$ [km] is taken from the SBDB `diameter` column (preferred) or the Lowell IRAS diameter. Volume assumes a sphere:
+
+$$
+V = \frac{\pi}{6}\, d_\text{m}^3
+$$
+
+where $d_\text{m} = d \times 10^3$ is the diameter in meters.
+
+Total asteroid mass is not used directly. Instead, the model computes an **optimal surface time** — the exact duration the spacecraft should spend mining before it departs — then derives resource yield from that time. The logic is purely economic: once the cargo hold is full, every additional day on the surface costs operations money with zero additional revenue. The model therefore mines only as long as necessary and leaves.
+
+#### Ore Grade and Extraction Rate
+
+The **ore grade** $g$ [kg of resource per m³ of bulk asteroid material] combines density and composition:
+
+$$
+g = \rho \cdot f_\text{resource}
+$$
+
+where $\rho$ is bulk density [kg/m³] and $f_\text{resource}$ is the resource mass fraction (both slider-controlled per compositional family — see the Compositional Families section). The **effective extraction rate** in kg of recovered resource per day is:
+
+$$
+\dot{m} = \dot{v} \cdot g \cdot \eta_\text{extract} = \dot{v} \cdot \rho \cdot f_\text{resource} \cdot \eta_\text{extract}
+$$
+
+where $\dot{v} = 0.005\ \text{m}^3/\text{day}$ is the assumed bulk mining throughput and $\eta_\text{extract}$ is the processing recovery yield (slider; see the Compositional Families section). The 0.005 m³/day rate (5 litres of bulk regolith per day) is a rough order-of-magnitude for a near-term robotic mining system; **no in-space mining benchmark exists**. The spacecraft endurance cap described below is the lever to explore throughput sensitivity.
+
+#### Three-Way Optimal Surface Time
+
+Three constraints independently bound how long the spacecraft should mine, and the binding one wins:
+
+**1. Time to fill the cargo hold.** Once $m_{c,\text{max}}$ kg of resource is loaded, the hold is full and departure is optimal:
+
+$$
+t_\text{fill} = \frac{m_{c,\text{max}}}{\dot{m}}
+$$
+
+**2. Time to exhaust the asteroid.** A small asteroid may not contain enough material to fill the hold even if the spacecraft mines it completely:
+
+$$
+t_\text{asteroid} = \frac{V}{\dot{v}}
+$$
+
+**3. Mining equipment endurance cap.** Two very different endurance limits are often conflated, and the distinction matters for what $t_\text{max}$ actually represents.
+
+*Spacecraft bus* (electronics, power systems, communications): the historical record is remarkably optimistic. Spirit and Opportunity were designed for 90 days; Opportunity lasted ~5,300 days (14.5 years). Curiosity was designed for one Martian year (687 days); it has surpassed 4,000 days and is still operational. The bus is almost never the binding constraint — it routinely outlasts its design life by 5–20×.
+
+*Excavation hardware* is a completely different story. Drill bits, conveyor mechanisms, regolith seals, and rotating actuators experience real mechanical wear, and in space there is no maintenance crew. Terrestrial mining drills require servicing every few hundred hours; in-space mining hardware has never been operated for more than a few hours (Hayabusa's contact sampling lasted seconds; Hayabusa2's SCI impactor was single-use). No operational data point exists for sustained robotic excavation beyond a token demonstration.
+
+This slider therefore sets the **mining subsystem endurance**, not spacecraft lifetime. The 730-day default is likely conservative for the bus and simultaneously uncertain for the excavation hardware — it could be too aggressive or too lenient depending on design choices that have never been tested. This is the **mining equipment endurance (max surface time)** slider, $t_\text{max}$ (default: 730 days).
+
+The economically optimal surface time is the minimum of all three:
+
+$$
+\boxed{t_\text{surface} = \min\!\bigl(t_\text{fill},\; t_\text{asteroid},\; t_\text{max}\bigr)}
+$$
+
+This value is **auto-computed per asteroid** — it is not a direct model input. The slider sets only the endurance ceiling; the model uses less time whenever the hold fills or the asteroid is exhausted first. The actual average surface time for your current fleet is shown in the mission profile table below the charts.
+
+#### Volume Processed and Delivered Cargo
+
+$$
+V_\text{processed} = \min\!\bigl(V,\; \dot{v} \cdot t_\text{surface}\bigr)
+$$
+
+The extracted mass:
+
+$$
+m_\text{extracted} = V_\text{processed} \cdot \rho \cdot f_\text{resource} \cdot \eta_\text{extract}
+$$
+
+The cargo actually loaded, capped at hold capacity:
+
+$$
+m_\text{cargo} = \min\!\bigl(m_\text{extracted},\; m_{c,\text{max}}\bigr)
+$$
+
+**Why throughput-bounded?** A naïve model that computes $V \cdot \rho \cdot f$ and caps at cargo gives unrealistic results: even a 10 m asteroid at conservative defaults contains many tonnes of resource — far more than any near-term spacecraft can process or carry. The throughput model keeps the density and resource-fraction sliders sensitive over their full range. At default parameters ($\dot{v} = 5\ \text{L/day}$, NTO/MMH chemical propulsion, unknown-class asteroid at 3,000 kg/m³, 10% metal fraction, 50% extraction efficiency), $t_\text{fill} \approx 333\ \text{days}$ — comfortably below the 730-day cap for most targets, so the grade sliders directly control yield.
+
+**This is the single largest source of uncertainty in the model.** The mining rate, the compositional defaults, and the family assignment for the ~87% of diameter-known NEAs that lack any taxonomy assignment are all poorly constrained. The Unknown-class sliders dominate the output: varying the unknown metal fraction from 1% to 20% changes {'$'}/kg by roughly an order of magnitude.
+
+### Outbound $\Delta v$
+
+The outbound mission $\Delta v$ is computed as three components: departure from LEO, rendezvous with the asteroid, and inclination plane change.
+
+#### Transfer Orbit
+
+We model the outbound trajectory as a simplified Hohmann transfer<sup class="cite-ref"><a href="#ref-7">[7]</a></sup> from Earth (at 1 AU) to the asteroid's perihelion at $q$ AU. The transfer ellipse has semi-major axis:
+
+$$
+a_\text{tr} = \frac{1 + q}{2} \;\text{AU}
+$$
+
+This is a single-impulse approximation. Real missions use multiple burns and gravity assists; this gives a lower bound.
+
+#### Departure Burn from LEO (Oberth Effect)
+
+The transfer orbit velocity at Earth's position (1 AU) is given by the vis-viva equation<sup class="cite-ref"><a href="#ref-9">[9]</a></sup>:
+
+$$
+v_{\text{tr},\oplus} = \sqrt{\mu_\odot\!\left(\frac{2}{r_\oplus} - \frac{1}{a_\text{tr}}\right)}
+$$
+
+where $\mu_\odot = 1.327 \times 10^{11}\;\text{km}^3/\text{s}^2$ is the heliocentric gravitational parameter and $r_\oplus = 1\;\text{AU} = 1.496 \times 10^8\;\text{km}$.
+
+The hyperbolic excess velocity at Earth departure:
+
+$$
+v_{\infty,\text{dep}} = \left|v_{\text{tr},\oplus} - v_\oplus\right|
+$$
+
+where $v_\oplus = \sqrt{\mu_\odot / r_\oplus} \approx 29.78\;\text{km/s}$ is Earth's circular orbital velocity.
+
+The Oberth maneuver<sup class="cite-ref"><a href="#ref-8">[8]</a></sup> from LEO converts this into an actual $\Delta v$ at the spacecraft:
+
+$$
+\Delta v_\text{dep} = \sqrt{v_{\infty,\text{dep}}^2 + v_\text{esc}^2} - v_\text{LEO}
+$$
+
+where $v_\text{esc} = \sqrt{2}\cdot v_\text{LEO} \approx 10.93\;\text{km/s}$ (escape velocity from LEO altitude — not Earth's surface escape of 11.19 km/s) and $v_\text{LEO} = 7.73\;\text{km/s}$ (circular velocity at 400 km altitude). The Oberth benefit is significant: a spacecraft already moving at $v_\text{LEO}$ can reach escape for only $\approx 3.2\;\text{km/s}$ rather than $v_\text{esc}$ in full.
+
+#### Rendezvous at Perihelion
+
+At asteroid perihelion, the asteroid's orbital velocity (vis-viva):
+
+$$
+v_\text{ast} = \sqrt{\mu_\odot\!\left(\frac{2}{q} - \frac{1}{a}\right)}
+$$
+
+The transfer orbit's velocity at perihelion:
+
+$$
+v_{\text{tr},q} = \sqrt{\mu_\odot\!\left(\frac{2}{q} - \frac{1}{a_\text{tr}}\right)}
+$$
+
+The rendezvous burn to match velocities:
+
+$$
+\Delta v_\text{arr} = \left|v_\text{ast} - v_{\text{tr},q}\right|
+$$
+
+All distances above are in km; $q$ and $a$ are converted from AU.
+
+#### Inclination Plane Change
+
+The plane change is applied at the aphelion of the transfer orbit, where orbital velocity is lowest (minimizing cost for a single impulsive maneuver):
+
+$$
+r_\text{aph} = \max(r_\oplus,\; q) \;\text{km}
+$$
+
+$$
+v_\text{aph} = \sqrt{\mu_\odot\!\left(\frac{2}{r_\text{aph}} - \frac{1}{a_\text{tr}}\right)}
+$$
+
+$$
+\Delta v_\text{plane} = 2\, v_\text{aph} \sin\!\frac{i}{2}
+$$
+
+In practice, splitting the plane change between the departure and arrival burns reduces total cost, but this single-impulse approximation is conservative and simpler to reason about.
+
+#### Total Outbound $\Delta v$ with Contingency
+
+$$
+\Delta v_\text{out} = \left(\Delta v_\text{dep} + \Delta v_\text{arr} + \Delta v_\text{plane}\right) \times k_c
+$$
+
+where $k_c \geq 1$ is the contingency multiplier (default 1.20, i.e., 20% margin). This accounts for non-Hohmann launch windows, trajectory correction maneuvers, and the real gap between perihelion rendezvous and an actual optimized trajectory.
+
+### Return $\Delta v$
+
+Return $\Delta v$ is parameterized as a fraction of the outbound:
+
+$$
+\Delta v_\text{ret} = f_\text{ret} \cdot \Delta v_\text{out}
+$$
+
+where $f_\text{ret} \in [0, 1]$ is the **return $\Delta v$ factor** slider.
+
+- $f_\text{ret} = 0$: the spacecraft uses **zero propellant on return** — it departs the asteroid onto a free-return trajectory and aerobrakes entirely into LEO using Earth's atmosphere for capture. The propellant mass for the return leg is zero, so only the outbound leg is propellant-limited. This is the most fuel-efficient possible scenario.
+- $f_\text{ret} \approx 0.18$: the Sonter (1997)<sup class="cite-ref"><a href="#ref-14">[14]</a></sup> aerobraking reference. Sonter gives "NEA to Earth transfer orbit ≈ 1 km/s" vs "outbound ≈ 5.5 km/s" — a ratio of ~0.18. This is the asteroid-departure $\Delta v$ to enter an Earth-return trajectory; Earth capture itself is free via aerobraking. This is the physically-grounded best case for a real return mission.
+- $f_\text{ret} = 1$: fully symmetric propulsive return — the spacecraft must execute the same $\Delta v$ cost on the return leg as the outbound leg. This is the conservative/worst-case: no aerobraking infrastructure assumed, full propulsive capture at Earth.
+- **Default: $f_\text{ret} = 0.6$.** This sits between the Sonter aerobraking case (~0.18×) and fully propulsive (1.0×). It represents a mixed-mode scenario: the spacecraft executes a departure burn at the asteroid onto an Earth-return trajectory, then uses aerocapture to reduce Earth-relative velocity, followed by a modest propulsive orbital insertion burn to reach LEO. No validated commercial deep-space bulk-return architecture exists, so this intermediate value is a deliberate conservative assumption. The slider lets you explore the full range.
+
+### Rocket Equation (Two-Stage)
+
+All propellant is launched from Earth — no in-situ resource utilization (ISRU) for propellant is assumed. The cargo (mined resource) is picked up at the asteroid. The mass-ratio form of the rocket equation<sup class="cite-ref"><a href="#ref-6">[6]</a></sup> is applied twice (once per leg):
+
+Let:
+- $m_d$ = spacecraft dry mass [kg] (slider)
+- $m_c$ = actual cargo = $\min(m_{c,\max},\; m_\text{extracted})$ [kg] — see Resource Yield section for $m_\text{extracted}$
+- $v_e = I_\text{sp} \cdot g_0$ = exhaust velocity [km/s]<sup class="cite-ref"><a href="#ref-16">[16]</a></sup>
+
+**Return stage propellant** (loaded from Earth, expended on return from asteroid):
+
+$$
+m_\text{prop,ret} = (m_d + m_c)\!\left(e^{\Delta v_\text{ret} / v_e} - 1\right)
+$$
+
+**Outbound stage propellant** (must carry $m_\text{prop,ret}$ from Earth):
+
+$$
+m_\text{prop,out} = (m_d + m_\text{prop,ret})\!\left(e^{\Delta v_\text{out} / v_e} - 1\right)
+$$
+
+**Total launch (wet) mass** $m_w$ — propellant plus dry structure, before cargo is loaded:
+
+$$
+m_w = m_d + m_\text{prop,ret} + m_\text{prop,out}
+$$
+
+Note that $m_c$ is *not* included in $m_w$ — cargo is picked up at the asteroid, never launched from Earth. The spacecraft needs enough propellant to carry itself plus the return propellant outbound, and then to carry itself plus the cargo on the return. This two-stage formulation correctly captures the dependency.
+
+**Assumption:** The dry mass $m_d$ includes both the propulsion system and all mining equipment. Separating mining payload mass from structural mass would require a separate slider; this simplification is conservative (larger dry mass = more propellant needed).
+
+### Mission Duration
+
+Transfer time (one-way Hohmann):
+
+$$
+T_\text{transfer} = \pi\sqrt{\frac{a_\text{tr}^3}{\mu_\odot}}
+$$
+
+This is the half-period of the transfer ellipse in seconds, converted to days in the model (divide by 86,400). For an Earth–1.3 AU transfer this gives roughly 200–400 days one-way. Total mission duration:
+
+$$
+T_\text{mission} = 2\,T_\text{transfer} \cdot k_\text{SEP} + T_\text{surface}
+$$
+
+where $k_\text{SEP} = 4$ for solar electric propulsion (to account for the longer low-thrust spiral trajectory vs. a ballistic Hohmann) and $k_\text{SEP} = 1$ for chemical propulsion.
+
+**$T_\text{surface}$ is not a direct slider input** — it is the auto-computed optimal mining duration from the Three-Way Optimal Surface Time section:
+
+$$
+T_\text{surface} = \min\!\bigl(t_\text{fill},\; t_\text{asteroid},\; t_\text{max}\bigr)
+$$
+
+The **spacecraft endurance (max surface time)** slider sets only $t_\text{max}$ — the hard engineering ceiling. The model automatically selects the economically optimal (shortest) duration from all three constraints for each individual asteroid, so mission duration adapts to each target's size and grade. A large, high-grade asteroid fills the cargo hold quickly ($t_\text{fill}$ is short, mission is short). A tiny or low-grade asteroid is mined out before the hold fills ($t_\text{asteroid}$ binds). Only if neither constraint is reached first does $t_\text{max}$ apply.
+
+**Why this matters for cost:** operations cost $C_\text{ops} = C_\text{ops/day} \cdot T_\text{mission}$ grows linearly with total mission time. For slow chemical missions to distant asteroids ($T_\text{transfer} \sim 200\text{–}400$ days each leg), the two-way transit alone accounts for 400–800 days of operations spend before a single gram is mined. SEP missions multiply this by 4 (the spiral-trajectory penalty) — but offset it with dramatically lower propellant mass and launch cost, which is why SEP tends to dominate economically at large fleet sizes.
+
+The average surface time for the current fleet selection is displayed in the mission profile table below the charts.
+
+### Cost Model
+
+There are two categories of cost: **variable costs** that are incurred fresh on every mission, and a **fixed programme cost** paid once regardless of how many missions fly.
+
+#### Variable Costs (Per Mission)
+
+**Launch cost** — paying a launch provider to put the wet spacecraft (structure + all propellant, but not the cargo, which is loaded at the asteroid) into LEO:
+
+$$
+C_\text{launch} = m_w \cdot P_\text{launch}
+$$
+
+where $P_\text{launch}$ [{'$'}/kg to LEO] is the launch price slider and $m_w$ (the wet mass) comes from the Rocket Equation section.
+
+**Operations cost** — ground control, flight operations, and engineering support for the full mission duration:
+
+$$
+C_\text{ops} = C_\text{ops/day} \cdot T_\text{mission}
+$$
+
+where $T_\text{mission}$ comes from the Mission Duration section. These two sum to the **variable mission cost** for mission $i$:
+
+$$
+C_{\text{var},i} = C_{\text{launch},i} + C_{\text{ops},i}
+$$
+
+#### Fixed Programme Cost (Development)
+
+Development cost — spacecraft design, build, testing, integration, and launch campaign infrastructure — is a **one-time sunk cost** paid before the first mission flies. It does not scale with how many missions the spacecraft eventually completes. As the fleet grows, this fixed cost is diluted across more missions, which is the primary driver of the declining slope in the {'$'}/kg vs fleet-size curve.
+
+In the model, $C_\text{dev,total}$ is added **once** to the cumulative cost of the fleet, not multiplied per mission. The total cost at fleet size $N$ is the sum of all per-mission variable costs plus the one-time development cost:
+
+$$
+C_\text{total,N} = \sum_{i=1}^{N} \bigl(C_{\text{launch},i} + C_{\text{ops},i}\bigr) + C_\text{dev,total}
+$$
+
+The first term grows with each new mission (variable costs). The second term, $C_\text{dev,total}$, is a constant added at every point on the curve — it does not depend on $N$.
+
+This is economically equivalent to saying the per-mission amortized share is $C_\text{dev,total}/N$, but the implementation matters: if `devCostShare = devCostTotal/fleetSize` were computed per mission and summed in the fleet-curve loop, dragging the fleet-size slider would change `devCostShare` for every mission in the loop, repricing every point on the curve and rescaling the y-axis. By instead adding `devCostTotal` as a single constant after the loop, the curve shape is entirely determined by the variable costs per asteroid — and the fleet-size slider only moves the red dot along a fixed curve.
+
+The average per-mission amortized development cost shown in the mission profile breakdown is $C_\text{dev,total} / N$ — this is a display convenience, not the implementation.
+
+### Resource Delivery and Fleet Aggregate {'$'}/kg
+
+Per mission, mass delivered to LEO equals the actual cargo loaded at the asteroid:
+
+$$
+m_\text{delivered} = m_c
+$$
+
+Return and delivery efficiency is assumed to be **100%**. No bulk deep-space cargo return has ever been attempted (OSIRIS-REx and Hayabusa2 returned microscopic science samples in purpose-built sealed containers, with no analogy to commercial bulk cargo), so there is no empirical basis for a loss factor. The assumption is documented as a known optimistic simplification.
+
+The fleet picks the $N$ most accessible targets, sorted ascending by outbound $\Delta v$ — the cheapest targets first. The primary model output is cumulative {'$'}/kg as a function of fleet size $N$:
+
+$$
+\boxed{\frac{\$}{\text{kg}} = \frac{\displaystyle\sum_{i=1}^{N} C_{\text{var},i} + C_\text{dev,total}}{\displaystyle\sum_{i=1}^{N} m_{\text{delivered},i}}}
+$$
+
+**Reading the curve.** At $N = 1$ the denominator is tiny (one asteroid's cargo) and the full development cost sits in the numerator — {'$'}/kg is very high. As $N$ increases, two things happen: (1) the fixed dev cost is diluted across a growing cargo total, and (2) each additional mission adds a new asteroid's variable cost and yield. If the fleet is picking accessible, high-yield targets, the denominator grows faster than the numerator and {'$'}/kg falls — economies of scale. When the fleet starts reaching harder targets (higher $\Delta v$, more propellant, lower yield), the variable costs per mission climb faster than the cargo they return, and the curve flattens or rises. The minimum of the curve, if it exists within the chart domain, is the economically optimal fleet size for the current parameter settings.
+
+### Compositional Families and Taxonomy Uncertainty
+
+Asteroids are assigned to one of four families based on spectral type. Bulk density defaults are drawn from the compiled survey in Carry (2012)<sup class="cite-ref"><a href="#ref-15">[15]</a></sup>; resource mass fractions are order-of-magnitude estimates based on meteorite compositional literature and are the dominant source of uncertainty:
+
+| Code | Family | Spectral types | Metal frac (default) | Density (default) |
+|------|--------|----------------|---------------------|-------------------|
+| 0 | Primitive / carbonaceous | C, B, F, G, P, D, T | 2.5% | 2,000 kg/m³ |
+| 1 | Ordinary stony / chondritic | S, Q, K, L, V, A, R | 12% | 3,400 kg/m³ |
+| 2 | Metal-rich / iron-like | M, X, E | 80% | 7,800 kg/m³ |
+| 3 | Unknown / unclassified | (no spectral data) | 10% | 3,000 kg/m³ |
+
+**Critical caveat:** even after combining SBDB spectra (`spec_B` / `spec_T`) with the MITHNEOS NIR survey,<sup class="cite-ref"><a href="#ref-34">[34]</a></sup> the Neese (2010) compilation,<sup class="cite-ref"><a href="#ref-35">[35]</a></sup> and SDSS photometric classifications,<sup class="cite-ref"><a href="#ref-36">[36]</a></sup> roughly 87% of the ~1,200 diameter-known NEAs still have no taxonomy assignment — because catalogs 2–4 are overwhelmingly populated with main-belt objects rather than near-Earth ones. The "unknown" family sliders therefore continue to dominate the resource yield calculation. The default values for unknown (density 3,000 kg/m³, metal fraction 10%) represent a rough chondritic average, but the true distribution is unknown. Sensitivity analysis (not yet in the model, planned) would show that varying the unknown metal fraction from 1% to 20% changes {'$'}/kg by roughly an order of magnitude.
+
+### Known Limitations and Planned Improvements
+
+1. **Rendezvous at perihelion is a lower bound.** Real missions need to match the asteroid's position at a specific point in time; the optimal launch window may require a significantly different trajectory. Empirically, real NEA missions cost 1.2–2× more $\Delta v$ than the Hohmann minimum suggests<sup class="cite-ref"><a href="#ref-12">[12]</a><a href="#ref-14">[14]</a></sup>.
+
+2. **No gravity assists.** Venus or Moon flyby trajectories can reduce $\Delta v$ by 1–3 km/s for many NEAs, dramatically changing the economics. This is particularly important for high-inclination targets.
+
+3. **Single-architecture assumption.** The model uses one dry mass and one cargo capacity for all missions. In reality, you'd size the spacecraft to the target. A multi-architecture model would optimize spacecraft design per asteroid.
+
+4. **No ISRU.** Using asteroid water to make propellant in situ would break the two-stage rocket equation assumption and dramatically reduce launch mass. This is worth adding as a toggle.
+
+5. **Propellant depot economics.** For water mining specifically, the value driver is selling propellant at a depot in cislunar space, not returning to Earth. The model compares water to an "in-space price" but doesn't model the depot supply chain.
+
+6. **SEP trip time.** The ×4 multiplier for SEP mission duration is a rough estimate. Actual low-thrust trajectory optimization would give a more accurate figure per target.
+
+7. **Taxonomy uncertainty.** The model needs a proper uncertainty propagation: given a distribution over possible family assignments for "unknown" asteroids, what is the distribution over {'$'}/kg?
+
+<hr />
+
+## References
+
+<style>{`
+.refs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+a.ref-card {
+  display: block;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #e5e1da;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+a.ref-card:hover {
+  border-color: #9e9790;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  text-decoration: none;
+}
+.ref-num { display: inline; font-size: 0.75rem; color: #aaa; margin-right: 3px; }
+.ref-title { display: inline; font-size: 0.88rem; font-weight: 500; color: #1a1a1a; line-height: 1.4; }
+.ref-meta { display: block; font-size: 0.75rem; color: #bbb; margin-top: 5px; }
+@media (max-width: 640px) { .refs-grid { grid-template-columns: 1fr; } }
+`}</style>
+
+<div class="refs-grid">
+
+<a id="ref-1" class="ref-card" href="https://ssd.jpl.nasa.gov/tools/sbdb_query.html" target="_blank" rel="noopener">
+<div class="ref-num">1.</div>
+<div class="ref-title">JPL Small-Body Database (SBDB)</div>
+<div class="ref-meta">NASA Jet Propulsion Laboratory · 2026</div>
+</a>
+
+<a id="ref-2" class="ref-card" href="https://asteroid.lowell.edu/astorb/" target="_blank" rel="noopener">
+<div class="ref-num">2.</div>
+<div class="ref-title">AstOrb: Near-Earth Asteroid Orbital Database</div>
+<div class="ref-meta">Lowell Observatory · 2026</div>
+</a>
+
+<a id="ref-3" class="ref-card" href="https://doi.org/10.1006/icar.2002.6864" target="_blank" rel="noopener">
+<div class="ref-num">3.</div>
+<div class="ref-title">Bus-DeMeo Asteroid Taxonomy (Phase II)</div>
+<div class="ref-meta">Bus &amp; Binzel · Icarus · 2002</div>
+</a>
+
+<a id="ref-4" class="ref-card" href="https://doi.org/10.1016/j.icarus.2009.02.005" target="_blank" rel="noopener">
+<div class="ref-num">4.</div>
+<div class="ref-title">Asteroid Taxonomy Extended into Near-Infrared</div>
+<div class="ref-meta">DeMeo et al. · Icarus · 2009</div>
+</a>
+
+<a id="ref-5" class="ref-card" href="https://ui.adsabs.harvard.edu/abs/1984PhDT.........3T/abstract" target="_blank" rel="noopener">
+<div class="ref-num">5.</div>
+<div class="ref-title">Asteroid Taxonomy from Cluster Analysis of Photometry</div>
+<div class="ref-meta">Tholen · PhD Dissertation, U. Arizona · 1984</div>
+</a>
+
+<a id="ref-6" class="ref-card" href="https://en.wikipedia.org/wiki/Tsiolkovsky_rocket_equation" target="_blank" rel="noopener">
+<div class="ref-num">6.</div>
+<div class="ref-title">Tsiolkovsky Rocket Equation</div>
+<div class="ref-meta">Tsiolkovsky · Nauchnoye Obozreniye · 1903</div>
+</a>
+
+<a id="ref-7" class="ref-card" href="https://archive.org/details/nasa_techdoc_19980230631" target="_blank" rel="noopener">
+<div class="ref-num">7.</div>
+<div class="ref-title">The Attainability of Heavenly Bodies (NASA TT F-44)</div>
+<div class="ref-meta">Hohmann · NASA Technical Translation · 1960 (orig. 1925)</div>
+</a>
+
+<a id="ref-8" class="ref-card" href="https://en.wikipedia.org/wiki/Oberth_effect" target="_blank" rel="noopener">
+<div class="ref-num">8.</div>
+<div class="ref-title">Wege zur Raumschiffahrt (Oberth Effect)</div>
+<div class="ref-meta">Oberth · R. Oldenbourg · 1929</div>
+</a>
+
+<a id="ref-9" class="ref-card" href="https://archive.org/details/BateMuellerAndWhiteFundamentalsOfAstrodynamics" target="_blank" rel="noopener">
+<div class="ref-num">9.</div>
+<div class="ref-title">Fundamentals of Astrodynamics</div>
+<div class="ref-meta">Bate, Mueller &amp; White · Dover Publications · 1971</div>
+</a>
+
+<a id="ref-10" class="ref-card" href="https://www.lme.com/en/metals/non-ferrous" target="_blank" rel="noopener">
+<div class="ref-num">10.</div>
+<div class="ref-title">LME Official Prices — Nickel &amp; Cobalt</div>
+<div class="ref-meta">London Metal Exchange · 2026</div>
+</a>
+
+<a id="ref-11" class="ref-card" href="https://matthey.com/en/products-and-markets/pgms-and-circularity/pgm-market-data" target="_blank" rel="noopener">
+<div class="ref-num">11.</div>
+<div class="ref-title">PGM Market Data — Platinum &amp; Palladium Prices</div>
+<div class="ref-meta">Johnson Matthey · 2026</div>
+</a>
+
+<a id="ref-12" class="ref-card" href="https://doi.org/10.1016/j.pss.2013.11.008" target="_blank" rel="noopener">
+<div class="ref-num">12.</div>
+<div class="ref-title">How Many Ore-Bearing Asteroids?</div>
+<div class="ref-meta">Elvis · Planetary and Space Science · 2014</div>
+</a>
+
+<a id="ref-13" class="ref-card" href="https://arxiv.org/abs/1810.04749" target="_blank" rel="noopener">
+<div class="ref-num">13.</div>
+<div class="ref-title">Exploring Potential Environmental Benefits of Asteroid Mining</div>
+<div class="ref-meta">Hein, Saidani &amp; Tollu · arXiv:1810.04749 · IAC 2018</div>
+</a>
+
+<a id="ref-14" class="ref-card" href="https://doi.org/10.1016/S0094-5765(98)00087-3" target="_blank" rel="noopener">
+<div class="ref-num">14.</div>
+<div class="ref-title">Technical &amp; Economic Feasibility of Mining Near-Earth Asteroids</div>
+<div class="ref-meta">Sonter · Acta Astronautica · 1997</div>
+</a>
+
+<a id="ref-15" class="ref-card" href="https://doi.org/10.1016/j.pss.2012.03.009" target="_blank" rel="noopener">
+<div class="ref-num">15.</div>
+<div class="ref-title">Density of Asteroids</div>
+<div class="ref-meta">Carry · Planetary and Space Science · 2012</div>
+</a>
+
+<a id="ref-16" class="ref-card" href="https://archive.org/details/rocketpropulsion0000sutt_p9s4" target="_blank" rel="noopener">
+<div class="ref-num">16.</div>
+<div class="ref-title">Rocket Propulsion Elements, 8th Ed.</div>
+<div class="ref-meta">Sutton &amp; Biblarz · Wiley · 2010</div>
+</a>
+
+<a id="ref-17" class="ref-card" href="https://ntrs.nasa.gov/citations/20200001093" target="_blank" rel="noopener">
+<div class="ref-num">17.</div>
+<div class="ref-title">The Recent Large Reduction in Space Launch Cost</div>
+<div class="ref-meta">Harry W. Jones · ICES-2018-81 / NASA Technical Reports Server · 2018</div>
+</a>
+
+<a id="ref-18" class="ref-card" href="https://spacenexus.us/guide/space-launch-cost-comparison" target="_blank" rel="noopener">
+<div class="ref-num">18.</div>
+<div class="ref-title">Space Launch Cost Comparison 2026: Prices by Vehicle &amp; Provider</div>
+<div class="ref-meta">SpaceNexus · 2026</div>
+</a>
+
+<a id="ref-19" class="ref-card" href="https://global.jaxa.jp/projects/sas/hayabusa2/pdf/sat33_fs_23_en.pdf" target="_blank" rel="noopener">
+<div class="ref-num">19.</div>
+<div class="ref-title">Hayabusa2 Fact Sheet</div>
+<div class="ref-meta">JAXA/ISAS · 2014</div>
+</a>
+
+<a id="ref-20" class="ref-card" href="https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2016-055A" target="_blank" rel="noopener">
+<div class="ref-num">20.</div>
+<div class="ref-title">OSIRIS-REx Mission: Spacecraft Overview</div>
+<div class="ref-meta">NASA Goddard Space Flight Center · 2023</div>
+</a>
+
+<a id="ref-21" class="ref-card" href="https://www.jpl.nasa.gov/press-kits/psyche/quick-facts/" target="_blank" rel="noopener">
+<div class="ref-num">21.</div>
+<div class="ref-title">Psyche Spacecraft Quick Facts</div>
+<div class="ref-meta">NASA/JPL · 2023</div>
+</a>
+
+<a id="ref-22" class="ref-card" href="https://www.spacex.com/vehicles/dragon/" target="_blank" rel="noopener">
+<div class="ref-num">22.</div>
+<div class="ref-title">Dragon Spacecraft Capabilities &amp; Services</div>
+<div class="ref-meta">SpaceX · 2024</div>
+</a>
+
+<a id="ref-23" class="ref-card" href="https://www.planetary.org/articles/what-are-competed-planetary-missions" target="_blank" rel="noopener">
+<div class="ref-num">23.</div>
+<div class="ref-title">NASA Discovery &amp; New Frontiers Program Costs</div>
+<div class="ref-meta">The Planetary Society · 2024</div>
+</a>
+
+<a id="ref-24" class="ref-card" href="https://www.planetary.org/articles/cost-of-the-jwst" target="_blank" rel="noopener">
+<div class="ref-num">24.</div>
+<div class="ref-title">The Cost of the James Webb Space Telescope</div>
+<div class="ref-meta">The Planetary Society · 2023</div>
+</a>
+
+<a id="ref-25" class="ref-card" href="https://science.nasa.gov/mission/voyager/fact-sheet/" target="_blank" rel="noopener">
+<div class="ref-num">25.</div>
+<div class="ref-title">Voyager Mission Fact Sheet</div>
+<div class="ref-meta">NASA Science · 2024</div>
+</a>
+
+<a id="ref-26" class="ref-card" href="https://spacenews.com/hubble-budget-cuts-could-impact-science-and-mission-operations/" target="_blank" rel="noopener">
+<div class="ref-num">26.</div>
+<div class="ref-title">Hubble &amp; Chandra Operations Budget</div>
+<div class="ref-meta">SpaceNews / NASA · 2024–2025</div>
+</a>
+
+<a id="ref-27" class="ref-card" href="https://www.jpl.nasa.gov/news/press_kits/spitzer/quick-facts/" target="_blank" rel="noopener">
+<div class="ref-num">27.</div>
+<div class="ref-title">Spitzer Space Telescope Quick Facts</div>
+<div class="ref-meta">NASA Jet Propulsion Laboratory · 2020</div>
+</a>
+
+<a id="ref-29" class="ref-card" href="https://sci.esa.int/documents/34375/36249/1567260131067-Margin_philosophy_for_science_assessment_studies_1.3.pdf" target="_blank" rel="noopener">
+<div class="ref-num">28.</div>
+<div class="ref-title">ESA Margin Philosophy for Science Assessment Studies</div>
+<div class="ref-meta">ESA/ESTEC · 2012</div>
+</a>
+
+<a id="ref-28" class="ref-card" href="https://shop.elsevier.com/books/wills-mineral-processing-technology/wills/978-0-08-097053-0" target="_blank" rel="noopener">
+<div class="ref-num">29.</div>
+<div class="ref-title">Wills' Mineral Processing Technology, 8th Ed.</div>
+<div class="ref-meta">Wills &amp; Finch · Butterworth-Heinemann · 2016</div>
+</a>
+
+<a id="ref-30" class="ref-card" href="https://www.jpl.nasa.gov/missions/neowise/" target="_blank" rel="noopener">
+<div class="ref-num">30.</div>
+<div class="ref-title">WISE / NEOWISE: Asteroid Characterization Survey</div>
+<div class="ref-meta">NASA / JPL · 2013–2024</div>
+</a>
+
+<a id="ref-31" class="ref-card" href="https://www.astroforge.com/odin-mission" target="_blank" rel="noopener">
+<div class="ref-num">31.</div>
+<div class="ref-title">AstroForge — Odin Mission (Lost Contact March 2025)</div>
+<div class="ref-meta">AstroForge · 2025</div>
+</a>
+
+<a id="ref-32" class="ref-card" href="https://www.astroforge.com/our-missions" target="_blank" rel="noopener">
+<div class="ref-num">32.</div>
+<div class="ref-title">AstroForge — Deepspace-2 Mission (Planned 2026)</div>
+<div class="ref-meta">AstroForge · 2026</div>
+</a>
+
+<a id="ref-33" class="ref-card" href="https://doi.org/10.1111/j.1945-5100.1990.tb00717.x" target="_blank" rel="noopener">
+<div class="ref-num">33.</div>
+<div class="ref-title">Chemical Analyses of Meteorites: A Compilation</div>
+<div class="ref-meta">Jarosewich · Meteoritics · 1990</div>
+</a>
+
+<a id="ref-34" class="ref-card" href="https://doi.org/10.1016/j.icarus.2018.12.035" target="_blank" rel="noopener">
+<div class="ref-num">34.</div>
+<div class="ref-title">MITHNEOS: MIT-Hawaii Near-Earth Object Spectroscopic Survey</div>
+<div class="ref-meta">Binzel et al. · Icarus · 2019</div>
+</a>
+
+<a id="ref-35" class="ref-card" href="https://sbn.psi.edu/pds/resource/taxonomy.html" target="_blank" rel="noopener">
+<div class="ref-num">35.</div>
+<div class="ref-title">Asteroid Taxonomy V6.0 (Multi-Survey Compilation)</div>
+<div class="ref-meta">Neese, C. (Ed.) · NASA Planetary Data System · 2010</div>
+</a>
+
+<a id="ref-36" class="ref-card" href="https://doi.org/10.1086/321432" target="_blank" rel="noopener">
+<div class="ref-num">36.</div>
+<div class="ref-title">Solar System Objects in the Sloan Digital Sky Survey (SDSS MOC)</div>
+<div class="ref-meta">Ivezić et al. · Astronomical Journal · 2001</div>
+</a>
+
+</div>

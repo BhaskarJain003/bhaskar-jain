@@ -1,0 +1,418 @@
+/* ============================================================
+   AsteroidMiningModel.css
+   Styles for the interactive asteroid mining cost model.
+   All colors use the site's existing CSS custom properties
+   where possible (--accent: #496A81, --gray-*, etc.)
+   ============================================================ */
+
+/* ── Breakout container ──────────────────────────────────────
+   Breaks out of the 720 px prose column to full viewport
+   width (capped at 1120 px) so sliders + charts fit side-by-side.
+*/
+.amm-outer {
+  width: min(1120px, 100vw - 2em);
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Atkinson Hyperlegible", "Lora", Georgia, serif;
+  font-size: 13px;
+  color: rgb(var(--gray-dark, 34,41,57));
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+/* ── Loading / error states ─────────────────────────────────*/
+.amm-loading {
+  padding: 3em;
+  text-align: center;
+  color: rgb(var(--gray, 96,115,159));
+  font-style: italic;
+}
+
+/* ── Stat cards row at the top ──────────────────────────────*/
+.amm-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75em;
+  margin-bottom: 1em;
+}
+@media (max-width: 600px) {
+  .amm-stats { grid-template-columns: 1fr 1fr; }
+}
+
+.amm-stat-card {
+  background: #f8f9fb;
+  border: 1px solid rgb(var(--gray-light, 229,233,240));
+  border-radius: 8px;
+  padding: 0.85em 1em;
+}
+.amm-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--gray, 96,115,159));
+  margin-bottom: 0.2em;
+}
+.amm-stat-value {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: var(--accent, #496A81);
+  line-height: 1.1;
+}
+.amm-stat-sub {
+  font-size: 11px;
+  color: rgb(var(--gray, 96,115,159));
+  margin-top: 0.2em;
+}
+
+/* ── Cost breakdown bar ─────────────────────────────────────*/
+.amm-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 1em;
+  flex-wrap: wrap;
+}
+.amm-breakdown-bar {
+  flex: 1 1 280px;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  min-width: 0;
+}
+.amm-breakdown-bar div {
+  height: 100%;
+  transition: width 0.2s ease;
+}
+.amm-breakdown-legend {
+  display: flex;
+  gap: 0.8em;
+  flex-wrap: wrap;
+}
+.amm-breakdown-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 11px;
+  color: rgb(var(--gray, 96,115,159));
+}
+.amm-breakdown-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Benchmark comparison bar ───────────────────────────────*/
+.amm-benchmark-section {
+  background: #f8f9fb;
+  border: 1px solid rgb(var(--gray-light, 229,233,240));
+  border-radius: 8px;
+  padding: 0.85em 1em;
+  margin-bottom: 1em;
+}
+.amm-benchmark-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--gray, 96,115,159));
+  margin-bottom: 0.5em;
+}
+.amm-benchmark-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.3em;
+  font-size: 12px;
+}
+.amm-benchmark-name {
+  width: 130px;
+  flex-shrink: 0;
+  color: rgb(var(--gray-dark, 34,41,57));
+}
+.amm-benchmark-track {
+  flex: 1;
+  height: 10px;
+  background: rgb(var(--gray-light, 229,233,240));
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.amm-benchmark-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.amm-benchmark-num {
+  width: 80px;
+  text-align: right;
+  color: rgb(var(--gray, 96,115,159));
+  flex-shrink: 0;
+}
+.amm-current-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: #e63946;
+}
+
+/* ── Main body: sliders + chart ─────────────────────────────*/
+.amm-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5em;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .amm-body { grid-template-columns: 1fr; }
+}
+
+/* ── Slider panel ───────────────────────────────────────────*/
+.amm-sliders {
+  background: #f8f9fb;
+  border: 1px solid rgb(var(--gray-light, 229,233,240));
+  border-radius: 8px;
+  padding: 1em;
+
+  /*
+   * Sticky sidebar: the panel sticks to the top of the viewport as the user
+   * scrolls through the (taller) charts column, and scrolls internally if
+   * its own content exceeds the viewport height.  This keeps sliders always
+   * reachable while viewing any chart, and visually matches the panel height
+   * to the charts column on most screens.
+   */
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Slim, unobtrusive scrollbar (WebKit / Blink) */
+.amm-sliders::-webkit-scrollbar        { width: 4px; }
+.amm-sliders::-webkit-scrollbar-track  { background: transparent; }
+.amm-sliders::-webkit-scrollbar-thumb  {
+  background: rgb(var(--gray-light, 229,233,240));
+  border-radius: 2px;
+}
+.amm-sliders::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--gray, 96,115,159));
+}
+.amm-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgb(var(--gray, 96,115,159));
+  margin: 1em 0 0.5em 0;
+  padding-top: 0.75em;
+  border-top: 1px solid rgb(var(--gray-light, 229,233,240));
+}
+.amm-section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.amm-slider-row {
+  margin-bottom: 0.75em;
+}
+.amm-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.2em;
+}
+.amm-slider-name {
+  font-size: 12px;
+  color: rgb(var(--gray-dark, 34,41,57));
+}
+.amm-slider-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #496A81);
+}
+input[type="range"].amm-range {
+  width: 100%;
+  accent-color: var(--accent, #496A81);
+  cursor: pointer;
+  height: 4px;
+}
+
+.amm-select {
+  width: 100%;
+  padding: 0.35em 0.5em;
+  border: 1px solid rgb(var(--gray-light, 229,233,240));
+  border-radius: 4px;
+  background: white;
+  font-size: 12px;
+  color: rgb(var(--gray-dark, 34,41,57));
+  cursor: pointer;
+}
+
+/* Resource type toggle */
+.amm-toggle-row {
+  display: flex;
+  gap: 0.4em;
+  margin-bottom: 0.75em;
+}
+.amm-toggle-btn {
+  flex: 1;
+  padding: 0.3em 0;
+  border-radius: 4px;
+  border: 1px solid rgb(var(--gray-light, 229,233,240));
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  color: rgb(var(--gray, 96,115,159));
+  transition: all 0.15s;
+}
+.amm-toggle-btn.active {
+  background: var(--accent, #496A81);
+  color: white;
+  border-color: var(--accent, #496A81);
+}
+
+/* Advanced toggle */
+.amm-advanced-toggle {
+  font-size: 11px;
+  color: var(--accent, #496A81);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4em 0;
+  width: 100%;
+  text-align: left;
+  margin-top: 0.5em;
+}
+.amm-advanced-panel {
+  border-top: 1px solid rgb(var(--gray-light, 229,233,240));
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+}
+.amm-family-row {
+  margin-bottom: 0.5em;
+}
+.amm-family-label {
+  font-size: 11px;
+  color: rgb(var(--gray, 96,115,159));
+  margin-bottom: 0.1em;
+}
+.amm-family-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3em;
+}
+.amm-family-inputs label {
+  font-size: 10.5px;
+  color: rgb(var(--gray, 96,115,159));
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+.amm-family-inputs input[type="range"] {
+  accent-color: var(--accent, #496A81);
+}
+
+/* ── Chart panel ────────────────────────────────────────────*/
+.amm-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+.amm-chart-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(var(--gray, 96,115,159));
+  margin-bottom: 0.3em;
+}
+.amm-chart-note {
+  font-size: 10.5px;
+  color: rgb(var(--gray, 96,115,159));
+  margin-top: 0.25em;
+  line-height: 1.4;
+}
+.amm-chart-box {
+  border: 1px solid rgb(var(--gray-light, 229,233,240));
+  border-radius: 8px;
+  padding: 0.85em 1em;
+  background: white;
+}
+.amm-chart-box svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Launch cost log-scale reference tick marks ─────────────*/
+.amm-launch-refs {
+  position: relative;
+  height: 40px;
+  margin-top: 3px;
+}
+.amm-launch-ref-marker {
+  position: absolute;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.amm-launch-ref-tick {
+  width: 1px;
+  height: 5px;
+  background: rgb(var(--gray-light, 229,233,240));
+  margin: 0 auto 2px;
+}
+.amm-launch-ref-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: rgb(var(--gray-dark, 34,41,57));
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.amm-launch-ref-label a {
+  color: rgb(var(--gray, 96,115,159));
+  font-weight: normal;
+  font-size: 8.5px;
+  text-decoration: none;
+  vertical-align: super;
+}
+.amm-launch-ref-label a:hover {
+  color: var(--accent, #496A81);
+  text-decoration: underline;
+}
+.amm-launch-ref-sub {
+  font-size: 8.5px;
+  color: rgb(var(--gray, 96,115,159));
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* ── In-component citation note ─────────────────────────────*/
+.amm-cite-note {
+  font-size: 10px;
+  color: rgb(var(--gray, 96,115,159));
+  margin-top: 0.6em;
+  line-height: 1.5;
+  border-top: 1px solid rgb(var(--gray-light, 229,233,240));
+  padding-top: 0.5em;
+}
+.amm-cite-note a {
+  color: rgb(var(--gray, 96,115,159));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.amm-cite-note a:hover {
+  color: var(--accent, #496A81);
+}
+
+/* ── Warning badge ───────────────────────────────────────────*/
+.amm-warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 0.6em 0.8em;
+  font-size: 11.5px;
+  color: #664d03;
+  margin-bottom: 0.75em;
+}

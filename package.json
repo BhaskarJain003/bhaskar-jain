@@ -7,6 +7,7 @@
   },
   "scripts": {
     "charts": "node scripts/build-msigma-charts.mjs",
+    "asteroid-data": "uv run python scripts/prepare_asteroid_data.py",
     "dev": "astro dev",
     "build": "node scripts/build-msigma-charts.mjs && astro build",
     "preview": "astro preview",
