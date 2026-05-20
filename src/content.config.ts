@@ -8,7 +8,10 @@ const postSchema = ({ image }: { image: (path?: string) => z.ZodTypeAny }) =>
 		description: z.string(),
 		pubDate: z.coerce.date(),
 		updatedDate: z.coerce.date().optional(),
+		/** Optional hero shown at top of the article */
 		heroImage: z.optional(image()),
+		/** Open Graph / Twitter card image (link previews); does not render in body */
+		ogImage: z.optional(image()),
 		hidden: z.boolean().optional(),
 	});
 
