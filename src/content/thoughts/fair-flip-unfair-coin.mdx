@@ -1,0 +1,71 @@
+---
+title: 'Making a Fair Flip from an Unfair Coin'
+description: 'John von Neumann discovered a beautiful trick: you can extract a perfectly fair 50/50 decision from a biased coin, using nothing but two flips and a piece of symmetry that hides in plain sight.'
+pubDate: 'May 19 2026'
+---
+
+import BiasedCoinViz from '../../components/charts/BiasedCoinViz';
+
+Suppose you need to make a fair decision — who goes first, which team kicks off — but the only coin you have is biased. It doesn't land heads and tails with equal probability; you're not even sure by how much. Can you still guarantee a fair 50/50 outcome?
+
+The answer is yes, and the solution was worked out by [John von Neumann](https://en.wikipedia.org/wiki/John_von_Neumann) — the same mathematician behind game theory, the architecture of the modern computer, and contributions to quantum mechanics. The trick is elegant enough to explain in a paragraph. The surprising part is that it requires *zero knowledge* of the bias.
+
+My friend who is going into the quant field asked me this question and it was fun to think about. Then we talked about a good way to visualize it and another friend suggested this "Punnet Square" way to visualize it, leading me to want to create this. Hope it tickles your brain too!
+
+## The Insight
+
+Let $p$ be the probability the coin lands heads, and $q = 1 - p$ the probability it lands tails. Flip the coin twice and consider the four possible outcomes:
+
+- **HH** with probability $p \times p = p^2$
+- **HT** with probability $p \times q = pq$
+- **TH** with probability $q \times p = qp$
+- **TT** with probability $q \times q = q^2$
+
+Look at HT and TH. Their probabilities are $pq$ and $qp$ — identical, by commutativity of multiplication. No matter what $p$ is, and without knowing $p$ at all, those two outcomes always occur with exactly equal probability. They're distinguishable (one ends heads, one ends tails), but equiprobable. That's all you need for a fair coin flip.
+
+**Von Neumann's algorithm:**
+
+1. Flip the coin twice.
+2. If both results match (HH or TT), discard them and start over.
+3. If the results differ, use the first flip: HT → "Heads," TH → "Tails."
+
+The decision is exactly 50/50 for any coin with $p$ strictly between $0$ and $1$. Not approximately fair, not fair on average — exactly fair, guaranteed.
+
+## Interactive Visualization
+
+The Punnett square below makes the key insight immediate. Each cell's area is proportional to its probability. Drag the slider to change $p$: the HT and TH cells (blue) will change shape — sometimes wide and short, sometimes narrow and tall — but their *areas* are always exactly equal.
+
+<BiasedCoinViz client:visible />
+
+## What the Charts Show
+
+The two curves capture the practical cost of this elegance.
+
+The first chart plots $P(\text{result}) = 2pq = 2p(1 - p)$ — the probability of getting a usable result (HT or TH) on any single double-toss. The function is a downward-opening parabola peaking at exactly $0.5$ when $p = 0.5$. Even with a perfectly fair coin, half of all double-tosses will be wasted — this is a real efficiency cost built into the method, not an artifact of bias.
+
+The second chart plots the expected number of double-tosses needed: $E[\text{rounds}] = 1/(2pq)$. The derivation is a neat exercise in self-referential expectation. If you let $E_r$ be the expected number of rounds, then:
+
+$$
+E_r = P(\text{result}) \cdot 1 + P(\text{no result}) \cdot (E_r + 1)
+$$
+
+The logic: with probability $P(\text{result}) = 2pq$ you finish in one round; otherwise you're back to the start, now one round deeper. Substituting $P(\text{result}) = 2pq$ and expanding:
+
+$$
+E_r = 2pq + (1 - 2pq)(E_r + 1)
+$$
+
+$$
+E_r = 2pq + E_r + 1 - 2pq \cdot E_r - 2pq
+$$
+
+$$
+0 = 1 - 2pq \cdot E_r
+$$
+
+$$
+E_r = \frac{1}{2pq}
+$$
+
+Which is just the reciprocal of the first curve. At $p = 0.5$, you need an expected 2 rounds. A coin biased to $p = 0.9$ requires roughly 5.6 rounds on average; at $p = 0.95$ that climbs to about 10.5. The number grows without bound as $p \to 0$ or $p \to 1$. The expected number of individual *coin tosses* (two per round) is simply $2E_r = \frac{1}{pq}$.
+
