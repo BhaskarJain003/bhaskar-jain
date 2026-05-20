@@ -4,6 +4,7 @@ import BaseHead from '../components/BaseHead.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
+import previewImage from '../assets/Professional.jpg';
 
 const projects = (await getCollection('projects')).sort(
 	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
@@ -13,7 +14,7 @@ const projects = (await getCollection('projects')).sort(
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={`Projects | ${SITE_TITLE}`} description="Projects by Bhaskar Jain" />
+		<BaseHead title={`Projects | ${SITE_TITLE}`} description="Projects by Bhaskar Jain" image={previewImage} />
 		<style>
 			.section-title {
 				font-size: 1.25em;

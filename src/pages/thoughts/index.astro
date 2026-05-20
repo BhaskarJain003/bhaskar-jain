@@ -4,6 +4,7 @@ import BaseHead from '../../components/BaseHead.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import previewImage from '../../assets/Professional.jpg';
 
 const posts = (await getCollection('thoughts'))
 	.filter((post) => !post.data.hidden)
@@ -13,7 +14,7 @@ const posts = (await getCollection('thoughts'))
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} image={previewImage} />
 		<style>
 			.section-title {
 				font-size: 1.25em;
