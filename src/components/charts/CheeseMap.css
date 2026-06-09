@@ -1,0 +1,244 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   CheeseMap.css
+   Subway-map process tree for the cheese family.
+   Mirrors the DairyProcessMap visual system with cm- prefix.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.cm-wrap {
+  font-family: system-ui, -apple-system, sans-serif;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ── Overlay toggles ─────────────────────────────────────────────────────────  */
+
+.cm-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.cm-overlays {
+  display: flex;
+  gap: 6px;
+}
+
+.cm-btn {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #d1d5db;
+  background: transparent;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.15s;
+}
+
+.cm-btn:hover {
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.cm-btn.active {
+  background: #1f2937;
+  color: white;
+  border-color: #1f2937;
+}
+
+/* ── Root node ───────────────────────────────────────────────────────────────  */
+
+.cm-root {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #7a4010;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-left: 2px;
+}
+
+.cm-trunk {
+  width: 3px;
+  height: 18px;
+  background: #d1d5db;
+  margin-left: 24px;
+}
+
+/* ── Branch list ─────────────────────────────────────────────────────────────  */
+
+.cm-branches {
+  padding-left: 26px;
+  border-left: 3px solid #e5e7eb;
+}
+
+.cm-branch {
+  position: relative;
+  margin-bottom: 1px;
+}
+
+.cm-branch::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 15px;
+  width: 22px;
+  height: 3px;
+  background: var(--bc);
+}
+
+/* ── Branch header ───────────────────────────────────────────────────────────  */
+
+.cm-bh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 5px 0;
+  user-select: none;
+}
+
+.cm-bh:hover .cm-bn {
+  opacity: 0.65;
+}
+
+.cm-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--bc);
+  flex-shrink: 0;
+  border: 2.5px solid white;
+  box-shadow: 0 0 0 2px var(--bc);
+}
+
+.cm-bn {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.cm-bcount {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.cm-arrow {
+  font-size: 9px;
+  color: #d1d5db;
+  margin-left: auto;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+
+.cm-arrow.open {
+  transform: rotate(90deg);
+}
+
+/* ── Branch body (collapsible) ───────────────────────────────────────────────  */
+
+.cm-body {
+  padding-left: 20px;
+  margin-left: 6px;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+}
+
+/* ── Sub-group label ─────────────────────────────────────────────────────────  */
+
+.cm-sg {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 9px 0 3px;
+}
+
+/* ── Cheese pills ────────────────────────────────────────────────────────────  */
+
+.cm-prods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 0 8px;
+}
+
+.cm-prod {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #1f2937;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  cursor: default;
+  line-height: 1.4;
+}
+
+.cm-region-tag {
+  display: none;   /* shown only via title tooltip; kept in DOM for accessibility */
+}
+
+/* ── Legends ─────────────────────────────────────────────────────────────────  */
+
+.cm-legends {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cm-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.cm-leg-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-right: 2px;
+}
+
+.cm-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.cm-leg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.cm-leg-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────  */
+
+@media (max-width: 480px) {
+  .cm-bn {
+    font-size: 12px;
+  }
+  .cm-prod {
+    font-size: 11px;
+  }
+}

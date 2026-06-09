@@ -1,0 +1,52 @@
+---
+title: 'Mapping Dairy: Milk as Transformation'
+description: 'Every dairy product is a transformation of milk — ferment it, separate the fat, coagulate the protein, remove the water, freeze it, cook it. Organized that way, the whole family makes sense.'
+pubDate: 'May 23 2026'
+---
+
+import DairyProcessMap from '../../components/charts/DairyProcessMap';
+import CheeseMap from '../../components/charts/CheeseMap';
+
+The usual lists of dairy products are alphabetical, which is about as useful as organizing words by their first letter. A better lens: every dairy product is a transformation of milk. Ferment it, separate the fat, coagulate the protein, remove the water, freeze it, cook it, or chain several of those steps together. The process is the thing.
+
+## The Process Map
+
+Six main operations cover almost everything in the dairy world.
+
+**Fat separation** is the oldest trick — let milk sit, and fat rises. Cream, butter, ghee, and clotted cream all start here. Buttermilk is what's left after churning cream into butter, which is why they sit on the same branch of this map even though they taste nothing alike.
+
+**Fermentation** is the most diverse branch. Bacteria convert lactose to lactic acid, thickening and preserving the milk. The yogurt family branches one way — thick, spoonable, strained to various degrees (Greek yogurt and skyr are both fermented-then-strained, just to different dryness). Drinkable fermented milks go another: kefir, ayran, doogh, lassi, kumis. All "fermented milk," but the cultures, milk types, and traditions behind each are entirely distinct. Toggle the Geography overlay and you'll see that fermentation is by far the most globally distributed process — almost every culture arrived at it independently.
+
+**Coagulation** is where cheese begins. Rennet or acid causes casein proteins to clump and separate from the liquid whey. Fresh curds can be eaten immediately (cottage cheese, paneer, ricotta), or pressed, brined, and aged into the many thousands of cheeses the world has produced. That branch deserves its own map — and gets one below.
+
+**Concentration** just means removing water, through evaporation, spray drying, or prolonged cooking. Condensed milk and evaporated milk differ only in whether sugar was added before or after. Khoa is condensed milk taken to a paste and is the base for dozens of South Asian sweets. Dulce de leche is condensed milk cooked until the sugars brown — or alternately, whole milk cooked slowly with sugar, which arrives at nearly the same place via a different route.
+
+**Freezing** works because churning while cold breaks up ice crystals and folds in air. Gelato has less air (lower "overrun") than American ice cream — denser, more intense. Kulfi has none at all; it's frozen in molds without churning, giving it a crystalline, icy texture that sits entirely apart from the churned family.
+
+**Cooking and sweetening** covers products where sustained heat does the transforming — proteins denature, sugars brown, and the result is richer than any of the inputs.
+
+<DairyProcessMap client:visible />
+
+Hover each branch header for a one-line description of the underlying chemistry. Toggle **Texture** to see the full liquid → drinkable → spoonable → spreadable → sliceable → solid → powder spectrum mapped onto the tree. Toggle **Geography** to see how the Fermented branch is the most globally diffuse — every culture with a milk animal arrived at fermentation independently.
+
+## Cheese Gets Its Own Map
+
+The coagulation branch is rich enough to deserve its own diagram. Cheese is not a thing — it's a family of processes applied to curd. The decisive variables: what coagulates the milk (acid versus rennet), how much whey is expelled (soft versus hard), what molds or bacteria are introduced at the surface or interior, and how long aging continues. Each combination produces a distinct texture and flavour profile.
+
+<CheeseMap client:visible />
+
+A few things worth noting as you explore this map:
+
+The **Pasta Filata** branch is its own technology. The curd is reheated in hot water and stretched — this aligns the casein protein strands and creates the characteristic stringy, elastic texture. Mozzarella is the fresh version; provolone and caciocavallo are the same technique taken through weeks or months of aging. Buffalo mozzarella uses the same stretch, but the higher fat content of buffalo milk gives it a creamier, more complex result than cow's milk mozzarella.
+
+**Blue-veined cheeses** share a biology but not a flavour. Roquefort (sheep's milk, aged in Combalou limestone caves), Gorgonzola (cow, Piedmont), and Stilton (cow, Nottinghamshire, with its own protected designation and traditional starter culture) are all inoculated with *Penicillium roqueforti* and needled to create air channels where the mold grows. Toggle **Milk type** and the sheep/cow distinction becomes immediately visible across the tree.
+
+Toggle **Age** and the spectrum from fresh (days) to extra-hard (years) becomes readable at a glance. The extra-hard cheeses — Parmigiano-Reggiano, Pecorino Romano — are dark on that scale because aging concentrates everything: protein breaks into amino acids that form crunchy white crystals, water activity drops so low that spoilage becomes nearly impossible, and flavour intensifies to the point where a gram does what a tablespoon of something younger cannot.
+
+## Where the Lines Cross
+
+These maps are trees, but the underlying reality is a network. A few crossings worth noting:
+
+Cream cheese is made from coagulating cream rather than whole milk, placing it at the junction of fat separation and coagulation. Labneh is strained yogurt — fermented *and* then further concentrated by draining. Mascarpone is cream acidified with citric acid, bridging fat separation, acid coagulation, and freshness all at once. Frozen yogurt crosses fermentation and freezing. Dulce de leche can be made two ways: concentrate milk first, then cook it (the condensed-milk route), or cook whole milk with sugar directly from the start — both arrive at roughly the same place.
+
+What looks like a tree is really a recipe graph in which any product is a sequence of operations applied to milk, and many paths lead to the same destination.
