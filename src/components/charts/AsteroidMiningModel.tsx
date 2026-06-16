@@ -52,7 +52,7 @@ const G0_KM_S2 = 9.80665e-3;
  * Isp reference values are standard propulsion engineering figures.
  * Source: Sutton, G. P. & Biblarz, O. (2010). Rocket Propulsion Elements, 8th ed.
  * Wiley. [ref-16]
- *   – NTO/MMH: Table 5-5, ~300–320 s in vacuum
+ *   – NTO/MMH: Table 5-5, ~300–340 s in vacuum
  *   – LOX/LH₂: Table 5-5, ~440–455 s in vacuum (RL-10 class)
  *   – Hall thruster: Chapter 17, ~1500–3000 s depending on power level
  */
@@ -85,9 +85,9 @@ const SEP_TIME_MULTIPLIER = 4.0;
 /**
  * Mining throughput: bulk asteroid volume the spacecraft can excavate and
  * process per day [m³/day].  At 0.005 m³/day × 180 surface days = 0.9 m³
- * processed, which at unknown-family defaults (3,000 kg/m³, 10% metal,
- * 50% extraction efficiency) yields ~135 kg — well below the 500 kg cargo
- * cap, so density/fraction sliders directly control the output.
+ * processed, which at unknown-family defaults (2,000 kg/m³, 10% metal,
+ * 50% extraction efficiency) yields 0.9 × 2000 × 0.10 × 0.50 ≈ 90 kg — below
+ * the 500 kg cargo cap, so density/fraction sliders directly control the output.
  *
  * This is a rough order-of-magnitude for a near-term robotic mining
  * system; no single citable benchmark exists yet for in-space mining rate.
@@ -106,7 +106,9 @@ const METAL_BENCHMARKS = [
   { name: 'Nickel',    price: 16,      color: '#8da0cb', market: 'Earth mine', refId: 10 },
   { name: 'Cobalt',    price: 33,      color: '#66c2a5', market: 'Earth mine', refId: 10 },
   { name: 'Platinum',  price: 31_000,  color: '#e78ac3', market: 'Earth mine', refId: 11 },
-  { name: 'Palladium', price: 45_000,  color: '#a6d854', market: 'Earth mine', refId: 11 },
+  // Palladium collapsed from its 2022–23 highs (~$1,400/oz) to ~$1,000/oz
+  // ($32K/kg) across 2024–25 as auto-catalyst demand softened. [ref-11]
+  { name: 'Palladium', price: 32_000,  color: '#a6d854', market: 'Earth mine', refId: 11 },
 ];
 
 /**
@@ -182,7 +184,12 @@ const DEFAULT_PARAMS: ModelParams = {
   extractionEff:   0.50,
   returnFactor:    0.60,
   contingency:     1.20,
-  densities:   [2_000, 3_400, 7_800, 3_000],
+  // Bulk (porosity-inclusive) densities from Carry (2012) [ref-15]:
+  // C-complex 1,330±580, S-complex 2,720±540 kg/m³. Metal-rich/M-type bulk
+  // clusters near ~3,500 kg/m³ in the density literature (well below solid-iron
+  // grain density ~7,800 — M-types are porous). Unknown: conservative ~chondritic
+  // bulk prior between the C and S complexes. Sliders allow pushing toward grain density.
+  densities:   [1_300, 2_700, 3_500, 2_000],
   metalFracs:  [0.025, 0.12,  0.80,  0.10 ],
 };
 
@@ -428,7 +435,8 @@ export default function AsteroidMiningModel() {
   const [densities,     setDensities]     = useState<[number,number,number,number]>([...DEFAULT_PARAMS.densities]   as [number,number,number,number]);
   const [metalFracs,    setMetalFracs]    = useState<[number,number,number,number]>([...DEFAULT_PARAMS.metalFracs]   as [number,number,number,number]);
   // Water mode fracs: [primitive/C-type, stony, metal-rich, unknown]
-  // C-type asteroids can be 5–20% water by mass; stony and metal-rich are essentially dry.
+  // CI/CM carbonaceous chondrites hold up to ~10–15% bound water by mass [ref-38];
+  // 8% C-type default is mid-range. Stony and metal-rich are essentially dry.
   const [waterFracs,    setWaterFracs]    = useState<[number,number,number,number]>([0.08, 0.005, 0.001, 0.01]);
 
   // Resource mode: 'metal' = PGM/nickel economics; 'water' = propellant/water economics
@@ -870,8 +878,9 @@ export default function AsteroidMiningModel() {
               lineHeight: 1.45,
             }}>
               <strong>Water / propellant mode:</strong> Resource fractions now represent water content
-              by mass. C-type (primitive) asteroids are the primary targets — they can hold up to ~20%
-              water in hydrated silicates. Benchmarks show estimated LEO depot prices, not Earth commodity prices.
+              by mass. C-type (primitive) asteroids are the primary targets — the most hydrous carbonaceous
+              chondrites (CI/CM) hold up to ~10–15% structurally-bound water. Benchmarks show estimated LEO
+              depot prices, not Earth commodity prices.
             </div>
           )}
 
@@ -966,10 +975,10 @@ export default function AsteroidMiningModel() {
             const refs = [
               // OSIRIS-REx dry mass: 880 kg (launch mass 2,110 kg − ~1,230 kg propellant) [ref-20]
               { mass: 880,   label: '880 kg',   sub: 'OSIRIS-REx',    refId: 20 },
-              // Psyche dry mass: 2,747 kg launch − 1,085 kg Xe = 1,662 kg dry [ref-21]
-              { mass: 1_662, label: '1,662 kg', sub: 'Psyche (dry)',   refId: 21 },
-              // Dragon capsule dry mass: ~4,200 kg (capsule + trunk, no propellant/cargo) [ref-22]
-              { mass: 4_200, label: '~4,200 kg', sub: 'Dragon (dry)',  refId: 22 },
+              // Psyche dry mass: ~1,616 kg per JPL (launch 2,747 kg − 1,085 kg Xe, less rounding) [ref-21]
+              { mass: 1_616, label: '1,616 kg', sub: 'Psyche (dry)',   refId: 21 },
+              // Cargo Dragon 1 dry mass: ~4,200 kg (capsule + trunk, no propellant/cargo) [ref-22]
+              { mass: 4_200, label: '~4,200 kg', sub: 'Cargo Dragon 1', refId: 22 },
             ] as const;
             return (
               <div className="amm-slider-row">
@@ -1007,8 +1016,9 @@ export default function AsteroidMiningModel() {
             const CC_MAX = 5_000;
             const toPct = (v: number) => ((v - CC_MIN) / (CC_MAX - CC_MIN)) * 100;
             const refs = [
-              // Dragon pressurized return capacity: ~3,000 kg (LEO → Earth only) [ref-22]
-              { mass: 3_000, label: '~3,000 kg', sub: 'Dragon (LEO)', refId: 22 },
+              // Cargo Dragon return down-mass: ~3,000 kg (Dragon 1); Cargo Dragon 2 ≈ 2,500 kg.
+              // LEO → Earth only; still the only vehicle returning bulk pressurized cargo intact. [ref-22]
+              { mass: 3_000, label: '~3,000 kg', sub: 'Cargo Dragon', refId: 22 },
             ] as const;
             return (
               <div className="amm-slider-row">
@@ -1091,10 +1101,10 @@ export default function AsteroidMiningModel() {
             const SD_MAX = 1095;
             const toPct = (v: number) => ((v - SD_MIN) / (SD_MAX - SD_MIN)) * 100;
             const refs = [
-              // MER Spirit & Opportunity design life: 90 days. Opportunity lasted ~5,300 days (14.5 yr). [ref-30]
-              { days: 90,  label: '90 d',  sub: 'MER design life',          refId: 30 },
-              // Curiosity & Perseverance design life: 1 Martian year ≈ 687 days. Curiosity still active >12 yr. [ref-31]
-              { days: 687, label: '687 d', sub: 'Curiosity/Percy design life', refId: 31 },
+              // MER Spirit & Opportunity design life: 90 sols. Opportunity lasted 5,352 sols (~14.5 yr). [ref-13]
+              { days: 90,  label: '90 d',  sub: 'MER design life',          refId: 13 },
+              // Curiosity & Perseverance prime mission: 1 Mars year ≈ 687 Earth days. Curiosity still active. [ref-37]
+              { days: 687, label: '687 d', sub: 'Curiosity/Percy design life', refId: 37 },
             ] as const;
             return (
               <div className="amm-slider-row">
@@ -1122,8 +1132,8 @@ export default function AsteroidMiningModel() {
                 <div style={{ fontSize: 10.5, color: 'rgb(96,115,159)', marginTop: 4, marginBottom: 8, lineHeight: 1.4 }}>
                   Hard ceiling on mining operations — but note the distinction between two very different
                   endurance limits. <strong>Spacecraft bus</strong> (electronics, power, comms): routinely
-                  exceeds design life by 5–20×. MER Opportunity was designed for 90 days; it lasted 5,300.
-                  Curiosity was designed for 687 days; it has passed 4,000. The electronics are not the
+                  exceeds design life by 5–20×. MER Opportunity was designed for 90 sols; it reached sol 5,352.
+                  Curiosity was designed for ~687 Earth days; it has passed 4,000 sols. The electronics are not the
                   binding constraint.{' '}
                   <strong>Excavation hardware</strong> is: drill bits, conveyor mechanisms, and seals that
                   experience real mechanical wear with no servicing possible. No space precedent exists for
@@ -1141,12 +1151,12 @@ export default function AsteroidMiningModel() {
             const C_MAX = 2.0;
             const toPct = (v: number) => ((v - C_MIN) / (C_MAX - C_MIN)) * 100;
             const refs = [
-              // ESA R-DV-11: 5% margin for accurately-calculated trajectory manoeuvres
-              // (Phase C/D — mature, well-characterised mission design) [ref-29]
-              { val: 1.05, label: '×1.05', sub: 'ESA Phase C/D min', refId: 29 },
-              // ESA concept-phase / NASA early-planning standard: 20%
-              // consistent with the ESA 20% system-level mass margin at Phase 0/A [ref-29]
-              { val: 1.20, label: '×1.20', sub: 'Concept-phase std',  refId: 29 },
+              // ESA: 5% margin on deterministic (accurately-calculated) trajectory manoeuvres
+              // at a mature design stage [ref-29]
+              { val: 1.05, label: '×1.05', sub: 'ESA deterministic ΔV', refId: 29 },
+              // 20%: ESA's early-phase system-level (dry-mass) margin, used here as a
+              // conservative ΔV-contingency proxy — not an ESA-stated ΔV margin. [ref-29]
+              { val: 1.20, label: '×1.20', sub: 'Early-phase margin',  refId: 29 },
             ] as const;
             return (
               <div className="amm-slider-row">
@@ -1173,9 +1183,11 @@ export default function AsteroidMiningModel() {
                 </div>
                 <div style={{ fontSize: 10.5, color: 'rgb(96,115,159)', marginTop: 4, lineHeight: 1.4 }}>
                   Multiplier applied to the Hohmann ΔV to account for trajectory corrections, navigation
-                  errors, and unmodelled perturbations. ESA standard<a href="#ref-29" style={{ color: 'rgb(96,115,159)' }}>[29]</a>: 5% for
-                  accurately-calculated manoeuvres at a mature design stage; 20% is standard at concept phase.
-                  Real NEA mission ΔV budgets typically exceed Hohmann minima by 20–100%<a href="#ref-12" style={{ color: 'rgb(96,115,159)' }}>[12]</a><a href="#ref-14" style={{ color: 'rgb(96,115,159)' }}>[14]</a> due to launch-window constraints.
+                  errors, and unmodelled perturbations. ESA<a href="#ref-29" style={{ color: 'rgb(96,115,159)' }}>[29]</a> specifies 5% on
+                  deterministic (accurately-calculated) manoeuvres at a mature design stage; its 20% figure is a
+                  system-level dry-mass margin, used here as a conservative ΔV-contingency proxy rather than an
+                  ESA-stated ΔV margin. The stronger justification for a large margin: real NEA mission ΔV budgets
+                  typically exceed Hohmann minima by 20–100%<a href="#ref-12" style={{ color: 'rgb(96,115,159)' }}>[12]</a><a href="#ref-14" style={{ color: 'rgb(96,115,159)' }}>[14]</a> due to launch-window constraints.
                 </div>
               </div>
             );
@@ -1218,10 +1230,11 @@ export default function AsteroidMiningModel() {
                   ))}
                 </div>
                 <div style={{ fontSize: 10.5, color: 'rgb(96,115,159)', marginTop: 4, lineHeight: 1.4 }}>
-                  Return ΔV as a fraction of outbound ΔV. Sonter (1997)<a href="#ref-14" style={{ color: 'rgb(96,115,159)' }}>[14]</a> gives
-                  "NEA to Earth transfer ≈ 1 km/s" vs "outbound ≈ 5.5 km/s" — ratio ~0.18 when using Earth
-                  aerobraking (atmosphere provides free capture). At 1.0×, full propulsive Earth capture is
-                  required; Sonter notes this "consumes otherwise-saleable return cargo as reaction mass."
+                  Return ΔV as a fraction of outbound ΔV. From Sonter (1997)<a href="#ref-14" style={{ color: 'rgb(96,115,159)' }}>[14]</a>, the
+                  asteroid-departure (Earth-return injection) ΔV is ~1–2 km/s against an outbound ~5.5–6 km/s, so the
+                  ratio works out to ~0.17–0.36 with Earth aerobraking providing free capture (~0.18 is the optimistic
+                  1 ÷ 5.5 end, a derived figure rather than a Sonter-stated ratio). At 1.0×, full propulsive Earth
+                  capture is required, consuming otherwise-saleable return cargo as reaction mass.
                 </div>
               </div>
             );
@@ -1238,8 +1251,9 @@ export default function AsteroidMiningModel() {
             const refs = [
               // Spitzer: ~$14M/yr ÷ 365 ≈ $38K/day (retired 2020) [ref-27]
               { perDay: 38_400,  label: '~$38K/day',  sub: 'Spitzer',  refId: 27 },
-              // Chandra: ~$41M/yr ÷ 365 ≈ $113K/day (2025 budget) [ref-26]
-              { perDay: 113_000, label: '~$113K/day', sub: 'Chandra',  refId: 26 },
+              // Chandra: ~$68M/yr recent operating budget ÷ 365 ≈ $186K/day [ref-26]
+              // (NASA's FY2025 proposal to cut this to ~$41M was deemed unworkable.)
+              { perDay: 186_000, label: '~$186K/day', sub: 'Chandra',  refId: 26 },
               // Hubble: ~$93.8M/yr avg ÷ 365 ≈ $257K/day [ref-26]
               { perDay: 257_000, label: '~$257K/day', sub: 'Hubble',   refId: 26 },
             ] as const;
