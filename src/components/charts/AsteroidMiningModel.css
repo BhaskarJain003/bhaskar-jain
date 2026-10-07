@@ -416,3 +416,11 @@ input[type="range"].amm-range {
   color: #664d03;
   margin-bottom: 0.75em;
 }
+
+/* ── Inline explanatory note under a slider ───────────────────*/
+.amm-slider-note {
+  font-size: 10.5px;
+  color: rgb(var(--gray, 96,115,159));
+  margin: -0.2em 0 0.8em;
+  line-height: 1.45;
+}

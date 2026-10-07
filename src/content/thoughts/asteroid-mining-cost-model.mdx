@@ -26,6 +26,19 @@ Full code used to build this model can be found at [https://github.com/BhaskarJa
 
 ## Analysis
 
+Here is what the model says, and the one thing I think it adds to the conversation.
+
+- **Launch cost is not the problem, and that is old news.** At the default settings, two-thirds of the bill is launch. But drag the launch price to zero and the model still floors around $140K–$300K per kilogram, five to ten times the price of platinum. Each mission carries roughly \$100M of operations and development cost and brings home a few hundred kilograms, and no rocket fixes that ratio. Analysts have been saying this since Oxnevad's 1991 investment model found that launch cost was "not a critical parameter",<sup class="cite-ref"><a href="#ref-43">[43]</a></sup> a conclusion Sonter adopted in his 1997 feasibility study,<sup class="cite-ref"><a href="#ref-14">[14]</a></sup> and Hein et al. reached the same place in 2020: throughput, not launch, is the lever.<sup class="cite-ref"><a href="#ref-39">[39]</a></sup> Cheap launch is necessary. It is nowhere near sufficient.
+
+- **With ordinary chemical propellant, not one asteroid passes the first test.** Forget development, operations, and mining for a moment. Just to bring one kilogram home you must launch the propellant for the return leg, plus the propellant to carry that propellant out. That marginal cost is $P_\text{launch}\,(e^{\Delta v_\text{ret}/v_e} - 1)\,e^{\Delta v_\text{out}/v_e}$ and it does not care how big your fleet is or how clever your mining robot is. At Falcon 9 prices with a 320 s engine, it comes to about \$39,000 per kilogram for the single most accessible asteroid in the catalog, more than a kilogram of platinum is worth. Zero of the 845 asteroids pass. Switch to hydrogen and 11 pass. Switch to electric propulsion and all 845 pass for platinum, but only 125 pass for water. This is Sonter's mass payback ratio<sup class="cite-ref"><a href="#ref-14">[14]</a></sup> restated as a price, and it is a hard floor.
+
+- **The scarce resource is launch windows.** This is the point I have not seen made with numbers. An asteroid is cheap to reach when its orbit looks like Earth's. But an orbit that looks like Earth's means the asteroid and Earth drift apart and realign very slowly, so the cheap alignment comes around rarely. The ten most accessible targets in the catalog line up with Earth every 6.6 years on median; one of them every 24 years. The rest of the catalog averages every 1.6 years. Add up the windows and the known population supports about one sub-6 km/s mission per year, four under 7 km/s, and nine under 8 km/s. I added a programme-horizon slider to the model to make this visible: fly 50 missions over 20 years and the fleet never needs a target above 6.7 km/s; fly the same 50 in two years and it is reaching 10 km/s and paying almost five times more per kilogram. Cheaper launch does not add windows. Higher specific impulse helps precisely because it makes the hundredth window nearly as cheap as the tenth. Trajectory designers know that Earth-like asteroids have synodic periods of decades,<sup class="cite-ref"><a href="#ref-40">[40]</a></sup> and Sonter noted in passing that this works against repeat missions,<sup class="cite-ref"><a href="#ref-14">[14]</a></sup> but Elvis's widely cited count of ore-bearing asteroids leaves it out entirely<sup class="cite-ref"><a href="#ref-12">[12]</a></sup> and I have not found anyone who put it into a cost curve. The fleet does not run out of asteroids. It runs out of windows.
+
+- **Uncertainty is the biggest lever, not the biggest killer.** Only 845 of roughly 41,000 known near-Earth asteroids have a measured diameter, and 79% of those have no spectral class. In the model, an "unknown" target that turns out to be a carbonaceous C-type returns 59 kg; a metal-rich one returns 500 kg. A telescope spectrum costs tens of thousands of dollars and a mission costs about \$180M. The gap is also concentrated exactly where it hurts: cheap targets are small, small targets are faint, and faint targets are the ones nobody has characterized. This cuts both ways for the previous point. The window counts above are a lower bound on the known population, and Elvis estimated an order of magnitude more ultra-low delta-v objects are out there undiscovered.<sup class="cite-ref"><a href="#ref-12">[12]</a></sup> Surveys are the only investment that raises the cadence ceiling.
+
+- **Read the metals mode as an upper bound.** The resource fraction in the model is bulk iron-nickel metal, but the benchmark is platinum. Platinum-group metals make up perhaps 20–100 parts per million of that metal. So either you bring home iron worth about \$16 a kilogram, or you refine in place and the yield shrinks ten-thousandfold: three tonnes of platinum-group metal per mission would mean processing on the order of 50 tonnes of rock per day for two years, against the 5 litres a day the model assumes. Water does not have this problem because it competes with launch cost rather than a commodity price, but it has a different one. Give it every advantage the model offers — electric propulsion, \$200/kg launch, the best-placed C-type in the catalog, and development cost spread over a hundred missions — and at \$50K a day of operations a water mission still has to bring back 25 times its own dry mass to break even. With free operations, about 2.3 times. Water is an autonomy problem.<sup class="cite-ref"><a href="#ref-39">[39]</a><a href="#ref-41">[41]</a></sup>
+
+- **So what would it take?** Electric propulsion or aerocapture to get past the propellant floor. A survey that finds the cheap targets we cannot currently see, because that is what sets how many missions a year the sky allows. A processing rate thousands of times higher than anything demonstrated in microgravity. And operations cheap enough that a multi-year mission does not eat its own cargo. Each of these is a separate problem. None of them is launch.
 
 <hr />
 
@@ -364,13 +377,33 @@ $$
 
 Return and delivery efficiency is assumed to be **100%**. No bulk deep-space cargo return has ever been attempted (OSIRIS-REx and Hayabusa2 returned microscopic science samples in purpose-built sealed containers, with no analogy to commercial bulk cargo), so there is no empirical basis for a loss factor. The assumption is documented as a known optimistic simplification.
 
-The fleet picks the $N$ most accessible targets, sorted ascending by outbound $\Delta v$ — the cheapest targets first. The primary model output is cumulative {'$'}/kg as a function of fleet size $N$:
+The fleet fills $N$ mission slots from the targets sorted ascending by outbound $\Delta v$ — the cheapest targets first — subject to the launch-window caps described in the next section. The primary model output is cumulative {'$'}/kg as a function of fleet size $N$:
 
 $$
 \boxed{\frac{\$}{\text{kg}} = \frac{\displaystyle\sum_{i=1}^{N} C_{\text{var},i} + C_\text{dev,total}}{\displaystyle\sum_{i=1}^{N} m_{\text{delivered},i}}}
 $$
 
 **Reading the curve.** At $N = 1$ the denominator is tiny (one asteroid's cargo) and the full development cost sits in the numerator — {'$'}/kg is very high. As $N$ increases, two things happen: (1) the fixed dev cost is diluted across a growing cargo total, and (2) each additional mission adds a new asteroid's variable cost and yield. If the fleet is picking accessible, high-yield targets, the denominator grows faster than the numerator and {'$'}/kg falls — economies of scale. When the fleet starts reaching harder targets (higher $\Delta v$, more propellant, lower yield), the variable costs per mission climb faster than the cargo they return, and the curve flattens or rises. The minimum of the curve, if it exists within the chart domain, is the economically optimal fleet size for the current parameter settings.
+
+### Launch Windows and Fleet Cadence
+
+A Hohmann transfer only exists when Earth and the target are in the right relative positions, and that geometry repeats once per **synodic period**. For a target with semi-major axis $a$ [AU] and period $T = a^{3/2}$ [yr]:
+
+$$
+S = \frac{1}{\left|\,1/T - 1\,\right|} \quad [\text{yr}]
+$$
+
+$S$ diverges as $a \to 1$ AU. This is the structural tension the Analysis leans on: the asteroids that are cheapest to reach are, by construction, the ones that realign with Earth least often. The model caps $S$ at 50 years because objects within about 1% of 1 AU follow horseshoe or quasi-satellite dynamics that the two-body formula does not describe.<sup class="cite-ref"><a href="#ref-40">[40]</a></sup>
+
+The **Programme horizon** slider $H$ [yr] sets how long the fleet has to fly its $N$ missions, so the implied cadence is $N/H$ launches per year. Each target $i$ can absorb at most
+
+$$
+\text{cap}_i = \min\!\left(\frac{H}{S_i},\; \frac{V_i}{\dot{v}\, t_{\text{surface},i}}\right)
+$$
+
+missions: one per launch window over the horizon, and never more than the asteroid's own volume supports at the model's mining rate. The fleet fills its $N$ slots cheapest-first, with fractional caps so the curve stays smooth, and spills to the next target once a target's windows are used up. The {'$'}/kg equation above is unchanged except that its sums now run over these window-weighted missions. A long horizon lets the fleet revisit the few cheapest rocks; a short horizon forces it deeper into the $\Delta v$ list.
+
+**Limitations.** $S$ is a first-order proxy. Real windows have width, $\Delta v$ degrades gradually away from the optimum rather than switching off, and small NEAs on Earth-like orbits can linger near Earth for several years at a time. The data file carries no orbital phase, so the model can say *how many* windows a target offers over the horizon but not *which* years they fall in. The full treatment is a Lambert-solver search over a date grid for every target, which is what NASA's NHATS database does for human-mission accessibility.<sup class="cite-ref"><a href="#ref-42">[42]</a></sup>
 
 ### Compositional Families and Taxonomy Uncertainty
 
@@ -680,6 +713,36 @@ a.ref-card:hover {
 <div class="ref-num">38.</div>
 <div class="ref-title">The Abundance and Stability of "Water" in Type 1 &amp; 2 Carbonaceous Chondrites (CI, CM, CR)</div>
 <div class="ref-meta">Garenne et al. · Geochimica et Cosmochimica Acta · 2014</div>
+</a>
+
+<a id="ref-39" class="ref-card" href="https://www.sciencedirect.com/science/article/abs/pii/S0094576518316357" target="_blank" rel="noopener">
+<div class="ref-num">39.</div>
+<div class="ref-title">A Techno-Economic Analysis of Asteroid Mining</div>
+<div class="ref-meta">Hein, Matheson &amp; Fries · Acta Astronautica · 2020</div>
+</a>
+
+<a id="ref-40" class="ref-card" href="https://arxiv.org/abs/1304.5082" target="_blank" rel="noopener">
+<div class="ref-num">40.</div>
+<div class="ref-title">Easily Retrievable Objects among the NEO Population</div>
+<div class="ref-meta">García Yárnoz, Sanchez &amp; McInnes · Celestial Mechanics and Dynamical Astronomy · 2013</div>
+</a>
+
+<a id="ref-41" class="ref-card" href="https://arxiv.org/abs/1808.05099" target="_blank" rel="noopener">
+<div class="ref-num">41.</div>
+<div class="ref-title">Asteroid Mining with Small Spacecraft and Its Economic Feasibility</div>
+<div class="ref-meta">Calla, Fries &amp; Welch · arXiv · 2018</div>
+</a>
+
+<a id="ref-42" class="ref-card" href="https://cneos.jpl.nasa.gov/nhats/" target="_blank" rel="noopener">
+<div class="ref-num">42.</div>
+<div class="ref-title">NHATS: Near-Earth Object Human Space Flight Accessible Targets Study</div>
+<div class="ref-meta">NASA JPL CNEOS · 2026</div>
+</a>
+
+<a id="ref-43" class="ref-card" href="https://scholar.google.com/scholar?q=%22An+Investment+Analysis+Model+for+Space+Mining+Ventures%22+Oxnevad" target="_blank" rel="noopener">
+<div class="ref-num">43.</div>
+<div class="ref-title">An Investment Analysis Model for Space Mining Ventures</div>
+<div class="ref-meta">Oxnevad · 42nd International Astronautical Congress, Montreal · 1991</div>
 </a>
 
 </div>

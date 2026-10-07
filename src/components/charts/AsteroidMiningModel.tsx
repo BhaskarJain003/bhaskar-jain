@@ -95,6 +95,28 @@ const SEP_TIME_MULTIPLIER = 4.0;
  */
 const MINING_RATE_M3_PER_DAY = 0.005;
 
+/**
+ * Launch windows.  A low-ΔV asteroid is one on an Earth-like orbit, and an
+ * Earth-like orbit means Earth and the asteroid realign only rarely.  The time
+ * between favourable alignments is the synodic period
+ *
+ *   S = 1 / |1/T − 1|   [years],  T = a^1.5  (Kepler III, T in years, a in AU)
+ *
+ * which diverges as a → 1 AU.  Objects within ~1% of 1 AU follow horseshoe /
+ * quasi-satellite dynamics rather than this simple formula, so S is capped.
+ * Over a programme horizon of H years a target offers roughly H / S windows,
+ * and the fleet model treats that as the maximum number of missions it can fly
+ * to that target.  See the "Launch Windows" subsection of the tech deep-dive.
+ */
+const SYNODIC_CAP_YEARS = 50;
+
+function synodicPeriodYears(a_au: number): number {
+  const T = Math.pow(a_au, 1.5);
+  const denom = Math.abs(1 / T - 1);
+  if (denom < 1e-9) return SYNODIC_CAP_YEARS;
+  return Math.min(1 / denom, SYNODIC_CAP_YEARS);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. EARTH MINING BENCHMARKS  ($/kg, approximate 2024–2025)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,6 +168,7 @@ type AsteroidRow = [
 interface ModelParams {
   // Fleet
   fleetSize:       number;   // number of missions (top-N by accessibility)
+  horizonYears:    number;   // programme horizon [yr]; each target can be flown at most horizon/synodic times
 
   // Launch economics
   launchCostPerKg: number;   // $/kg to LEO
@@ -174,6 +197,7 @@ interface ModelParams {
 
 const DEFAULT_PARAMS: ModelParams = {
   fleetSize:       10,
+  horizonYears:    10,     // 10-year programme; cadence = fleetSize / horizonYears
   launchCostPerKg: 2_720,  // Falcon 9 customer price ~$2,720/kg to LEO [ref-17]
   propulsion:      'chemical_nto',
   dryMassKg:       2_000,
@@ -212,6 +236,15 @@ interface CurvePoint {
   costPerKg:   number;   // cumulative $/kg
   totalCost:   number;   // cumulative $
   totalDelivered: number;  // cumulative kg
+  // Window-weighted aggregates over the n missions (for the stats panel)
+  launchCost:  number;   // cumulative launch $
+  opsCost:     number;   // cumulative ops $
+  dvSum:       number;   // Σ mission ΔV  [km/s]
+  daysSum:     number;   // Σ mission days
+  surfaceSum:  number;   // Σ surface days
+  wetSum:      number;   // Σ wet mass [kg]
+  targetsUsed: number;   // distinct asteroids the n missions are spread over
+  maxDvOut:    number;   // outbound ΔV of the hardest target used [km/s]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -307,8 +340,19 @@ function computeMission(
 
 /**
  * Compute the cumulative $/kg vs fleet-size curve.
- * Picks the top N asteroids (pre-sorted ascending by dv_out) and
- * accumulates cost and delivered mass.
+ *
+ * Targets are pre-sorted ascending by dv_out (cheapest first).  The fleet
+ * fills N mission slots from the top of that list, but each target can absorb
+ * at most
+ *
+ *   cap_i = min( H / S_i ,  V_i / (v̇ · t_surface,i) )
+ *
+ * missions: one per launch window over the programme horizon H (S_i = synodic
+ * period), and never more than the asteroid's own material supports.  Caps are
+ * fractional, so the curve stays smooth.  When a target's windows are used up
+ * the fleet moves to the next-cheapest target.  A short horizon (high cadence)
+ * therefore forces the fleet deeper into the ΔV list; a long horizon lets it
+ * revisit the handful of cheapest rocks.
  *
  * Only points 1..MAX_N are computed to keep the UI responsive.
  */
@@ -319,26 +363,54 @@ function computeFleetCurve(
   params: ModelParams,
 ): CurvePoint[] {
   const curve: CurvePoint[] = [];
-  let totalMissionCost = 0;   // launch + ops only (variable costs)
-  let totalDelivered   = 0;
   // Dev cost is a one-time fixed programme cost, paid once regardless of fleet
   // size and amortised across all missions.  It must NOT be multiplied by n
   // in the loop — otherwise changing the fleet-size slider reprices every point
   // on the curve and the axis rescales.
   const devCostTotal = params.devCostM * 1e6;
-  const limit = Math.min(sortedAsteroids.length, MAX_CURVE_N);
 
-  for (let n = 1; n <= limit; n++) {
-    const res = computeMission(sortedAsteroids[n - 1], params);
-    // Accumulate only the variable per-mission costs; add devCostTotal once below.
-    totalMissionCost += res.launchCost + res.opsCost;
-    totalDelivered   += res.deliveredKg;
-    const totalCost = totalMissionCost + devCostTotal;
+  // Per-target mission result and window cap
+  const results = sortedAsteroids.map(a => computeMission(a, params));
+  const caps = sortedAsteroids.map((a, i) => {
+    const windows  = params.horizonYears / synodicPeriodYears(a[0]);
+    const material = a[3] / (MINING_RATE_M3_PER_DAY * Math.max(results[i].surfaceDays, 1));
+    return Math.max(0, Math.min(windows, material));
+  });
+
+  let idx = 0, usedInIdx = 0;
+  let launch = 0, ops = 0, kg = 0, dv = 0, days = 0, surf = 0, wet = 0, maxDvOut = 0;
+
+  for (let n = 1; n <= MAX_CURVE_N; n++) {
+    let need = 1.0;
+    while (need > 1e-9 && idx < sortedAsteroids.length) {
+      const take = Math.min(caps[idx] - usedInIdx, need);
+      if (take > 0) {
+        const r = results[idx];
+        launch += take * r.launchCost;
+        ops    += take * r.opsCost;
+        kg     += take * r.deliveredKg;
+        dv     += take * r.dvTotalKmS;
+        days   += take * r.missionDays;
+        surf   += take * r.surfaceDays;
+        wet    += take * r.wetMassKg;
+        maxDvOut = sortedAsteroids[idx][5];
+        usedInIdx += take;
+        need      -= take;
+      }
+      if (usedInIdx >= caps[idx] - 1e-9) { idx++; usedInIdx = 0; }
+    }
+    if (need > 1e-9) break;   // catalogue exhausted within this horizon
+
+    const totalCost = launch + ops + devCostTotal;
     curve.push({
       n,
-      costPerKg:      totalDelivered > 0 ? totalCost / totalDelivered : Infinity,
+      costPerKg:      kg > 0 ? totalCost / kg : Infinity,
       totalCost,
-      totalDelivered,
+      totalDelivered: kg,
+      launchCost: launch, opsCost: ops,
+      dvSum: dv, daysSum: days, surfaceSum: surf, wetSum: wet,
+      targetsUsed: idx + (usedInIdx > 1e-9 ? 1 : 0),
+      maxDvOut,
     });
   }
   return curve;
@@ -420,6 +492,7 @@ export default function AsteroidMiningModel() {
 
   // ── Model parameter state (one setter per param for slider simplicity) ───
   const [fleetSize,       setFleetSize]       = useState(DEFAULT_PARAMS.fleetSize);
+  const [horizonYears,    setHorizonYears]    = useState(DEFAULT_PARAMS.horizonYears);
   const [launchCostPerKg, setLaunchCostPerKg] = useState(DEFAULT_PARAMS.launchCostPerKg);
   const [propulsion,      setPropulsion]      = useState<PropulsionType>(DEFAULT_PARAMS.propulsion);
   const [dryMassKg,       setDryMassKg]       = useState(DEFAULT_PARAMS.dryMassKg);
@@ -472,13 +545,13 @@ export default function AsteroidMiningModel() {
   // The field name stays 'metalFracs' in the interface — we resolve which values to
   // use here at the params-assembly boundary.
   const params = useMemo<ModelParams>(() => ({
-    fleetSize, launchCostPerKg, propulsion, dryMassKg, cargoCapKg,
+    fleetSize, horizonYears, launchCostPerKg, propulsion, dryMassKg, cargoCapKg,
     opsPerDay, maxSurfaceDays, devCostM, extractionEff,
     returnFactor, contingency,
     densities,
     metalFracs: resourceMode === 'water' ? waterFracs : metalFracs,
   }), [
-    fleetSize, launchCostPerKg, propulsion, dryMassKg, cargoCapKg,
+    fleetSize, horizonYears, launchCostPerKg, propulsion, dryMassKg, cargoCapKg,
     opsPerDay, maxSurfaceDays, devCostM, extractionEff,
     returnFactor, contingency,
     densities, metalFracs, waterFracs, resourceMode,
@@ -493,7 +566,7 @@ export default function AsteroidMiningModel() {
     return computeFleetCurve(asteroids, params);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    asteroids,
+    asteroids, horizonYears,
     launchCostPerKg, propulsion, dryMassKg, cargoCapKg,
     opsPerDay, maxSurfaceDays, devCostM,
     extractionEff, returnFactor, contingency,
@@ -506,22 +579,25 @@ export default function AsteroidMiningModel() {
     : null;
 
   // ── Per-mission breakdown for the current fleet ───────────────────────
+  // Read from the curve point so the averages reflect the window-weighted
+  // allocation (a target flown 2.3 times counts 2.3×), not a plain top-N slice.
   const avgMission = useMemo(() => {
-    if (!asteroids || !currentPoint) return null;
-    // Average over the first fleetSize missions
-    const slice = asteroids.slice(0, fleetSize);
-    const results = slice.map(ast => computeMission(ast, params));
-    const n = results.length;
+    if (!currentPoint) return null;
+    const n = currentPoint.n;
+    const devTotal = devCostM * 1e6;
     return {
-      launchPct:       pct(results.reduce((s, r) => s + r.launchCost,   0), currentPoint.totalCost),
-      opsPct:          pct(results.reduce((s, r) => s + r.opsCost,      0), currentPoint.totalCost),
-      devPct:          pct(results.reduce((s, r) => s + r.devCostShare, 0), currentPoint.totalCost),
-      avgDvKmS:        results.reduce((s, r) => s + r.dvTotalKmS,   0) / n,
-      avgDays:         results.reduce((s, r) => s + r.missionDays,  0) / n,
-      avgSurfaceDays:  results.reduce((s, r) => s + r.surfaceDays,  0) / n,
-      avgWetMass:      results.reduce((s, r) => s + r.wetMassKg,    0) / n,
+      launchPct:       pct(currentPoint.launchCost, currentPoint.totalCost),
+      opsPct:          pct(currentPoint.opsCost,    currentPoint.totalCost),
+      devPct:          pct(devTotal,                currentPoint.totalCost),
+      avgDvKmS:        currentPoint.dvSum      / n,
+      avgDays:         currentPoint.daysSum    / n,
+      avgSurfaceDays:  currentPoint.surfaceSum / n,
+      avgWetMass:      currentPoint.wetSum     / n,
+      targetsUsed:     currentPoint.targetsUsed,
+      maxDvOut:        currentPoint.maxDvOut,
+      cadence:         n / horizonYears,
     };
-  }, [asteroids, fleetSize, params, currentPoint]);
+  }, [currentPoint, devCostM, horizonYears]);
 
   // ── Benchmarks ────────────────────────────────────────────────────────
   const benchmarks = resourceMode === 'metal' ? METAL_BENCHMARKS : WATER_BENCHMARKS;
@@ -892,6 +968,17 @@ export default function AsteroidMiningModel() {
             fmt={v => `${v} missions`}
             onChange={setFleetSize}
           />
+          <SliderRow
+            label="Programme horizon (launch windows)"
+            value={horizonYears} min={1} max={30} step={1}
+            fmt={v => `${v} yr → ${(fleetSize / v).toFixed(1)} launches/yr`}
+            onChange={setHorizonYears}
+          />
+          <div className="amm-slider-note">
+            Each asteroid can only be flown when Earth and the asteroid line up — roughly once per
+            synodic period. The fleet may revisit a target once per window within this horizon, then
+            must move to the next-cheapest asteroid. Shorter horizon = higher cadence = harder targets.
+          </div>
 
           {/* Launch — log-scale slider with reference benchmarks */}
           <div className="amm-section-title">Launch economics</div>
@@ -1519,6 +1606,8 @@ export default function AsteroidMiningModel() {
                     ['Avg launch mass (wet)',     `${avgMission.avgWetMass.toFixed(0)} kg`],
                     ['Avg mission duration',      `${Math.round(avgMission.avgDays)} days (${(avgMission.avgDays / 365).toFixed(1)} yr)`],
                     ['Avg surface / mining time', `${Math.round(avgMission.avgSurfaceDays)} days — optimal (cap: ${maxSurfaceDays} days)`],
+                    ['Distinct targets used',     `${avgMission.targetsUsed} asteroids over ${horizonYears} yr (${avgMission.cadence.toFixed(1)} launches/yr)`],
+                    ['Hardest target reached',    `${avgMission.maxDvOut.toFixed(2)} km/s outbound ΔV`],
                     ['Propulsion (v_e)',          `${PROPULSION[propulsion].ve.toFixed(2)} km/s  (Isp ${PROPULSION[propulsion].isp} s)`],
                     ['Avg cost / mission',        formatDollars((currentPoint?.totalCost ?? 0) / Math.max(1, fleetSize))],
                     ['Avg yield / mission',       `${((currentPoint?.totalDelivered ?? 0) / Math.max(1, fleetSize)).toFixed(1)} kg delivered`],
